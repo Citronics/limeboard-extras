@@ -13,6 +13,11 @@ Sources:
 
 ## 40-pin header
 
+![Limeboard 40-pin header pinout](images/limeboard-pinout.svg)
+
+`tools/pinout_svg.py` generates this diagram. Keep its pin table in step
+with the tables below.
+
 The header follows the Raspberry Pi layout and BCM numbering. In Linux,
 "Line" is the line number on the GPIO chip `dln2`, which is the same as the
 BCM number. "Function" lists what the Limeboard I/O firmware provides on

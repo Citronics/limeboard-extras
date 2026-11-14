@@ -55,6 +55,8 @@ complete pinout: all 40 pins with their GPIO, STM32 pin and functions, the
 onboard LED, button and other STM32 signals, and the board's jumpers and
 switches.
 
+![Limeboard 40-pin header pinout](images/limeboard-pinout.svg)
+
 | Function | Pin | Pin | Function |
 |---:|:-:|:-:|:---|
 | 3.3 V | 1 | 2 | 5 V |
