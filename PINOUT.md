@@ -111,15 +111,16 @@ driver supports one I2C bus, one SPI bus and up to 32 GPIO lines.
 
 ## Onboard signals of the STM32
 
-These are not on the header. Lines 28-31 of the `dln2` chip expose the LED
-and the button. The firmware keeps the other signals away from Linux on
-purpose.
+These are not on the header. The board has one RGB LED, and each of its three
+colour channels is driven by its own STM32 pin. Lines 28-31 of the `dln2` chip
+expose the three channels and the button. The firmware keeps the other signals
+away from Linux on purpose.
 
 | Signal | STM32 | Linux | Function |
 |---|:-:|---|---|
-| LED_R | PC11 | `dln2` line 28 | onboard RGB LED, red (1 = on) |
-| LED_G | PC12 | `dln2` line 29 | onboard RGB LED, green (1 = on) |
-| LED_B | PC7 | `dln2` line 30 | onboard RGB LED, blue (1 = on) |
+| LED_R | PC11 | `dln2` line 28 | red channel of the RGB LED (1 = on) |
+| LED_G | PC12 | `dln2` line 29 | green channel of the RGB LED (1 = on) |
+| LED_B | PC7 | `dln2` line 30 | blue channel of the RGB LED (1 = on) |
 | BTN | PB2 | `dln2` line 31 | user button (input). Held at power-up: STM32 ROM bootloader (DFU) |
 | FP_PWRKEY | PA15 | not exposed | phone's power key |
 | FP_BUT_UP | PC13 | not exposed | phone's volume-up key |

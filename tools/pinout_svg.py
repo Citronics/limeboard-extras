@@ -52,12 +52,13 @@ PINS = {
     40: ("GPIO21", "gpio", "PB10"),
 }
 
-ONBOARD = [
-    ("line 28", "LED red", "PC11", "led_r"),
-    ("line 29", "LED green", "PC12", "led_g"),
-    ("line 30", "LED blue", "PC7", "led_b"),
-    ("line 31", "User button", "PB2", "btn"),
+# One RGB LED: each colour channel is driven by its own STM32 pin
+LED_CHANNELS = [
+    ("Red", "line 28", "PC11", "led_r"),
+    ("Green", "line 29", "PC12", "led_g"),
+    ("Blue", "line 30", "PC7", "led_b"),
 ]
+BUTTON = ("User button", "line 31", "PB2", "btn")
 
 COLOURS = {  # fill, text on fill
     "3v3": ("#f0a830", "#2b1d00"),
@@ -157,15 +158,29 @@ for kind, name in LEGEND:
 # Onboard signals
 oy = ly + 46
 text(70, oy, "On the board (not on the header)", 15, "bold")
-for i, (line, name, stm, kind) in enumerate(ONBOARD):
-    x = 70 + i * 215
-    y = oy + 30
+y = oy + 34
+# The RGB LED: one component, three channels side by side in one frame
+out.append(f'<rect x="70" y="{y - 20}" width="610" height="40" rx="20" fill="#eef0f2" stroke="#c8ccd0"/>')
+out.append('<defs><linearGradient id="rgb" x1="0" x2="1" y1="0" y2="1">'
+           '<stop offset="0" stop-color="#d8433b"/><stop offset="0.5" stop-color="#3a9d4a"/>'
+           '<stop offset="1" stop-color="#2f6fd0"/></linearGradient></defs>')
+out.append(f'<circle cx="94" cy="{y}" r="11" fill="url(#rgb)" stroke="#111" stroke-width="1"/>')
+text(112, y + 5, "RGB LED", 14, "bold")
+for i, (name, line, stm, kind) in enumerate(LED_CHANNELS):
+    x = 190 + i * 162
     fill, ink = COLOURS[kind]
-    out.append(f'<rect x="{x}" y="{y - 13}" width="200" height="26" rx="13" fill="{fill}"/>')
-    text(x + 14, y + 5, name, 13, "bold", "start", ink)
-    text(x + 186, y + 5, f"{line} · {stm}", 11.5, "normal", "end", ink, ' opacity="0.9"')
+    out.append(f'<rect x="{x}" y="{y - 13}" width="154" height="26" rx="13" fill="{fill}"/>')
+    text(x + 12, y + 5, name, 12.5, "bold", "start", ink)
+    text(x + 143, y + 5, f"{line} · {stm}", 11, "normal", "end", ink, ' opacity="0.9"')
+name, line, stm, kind = BUTTON
+fill, ink = COLOURS[kind]
+out.append(f'<rect x="700" y="{y - 13}" width="210" height="26" rx="13" fill="{fill}"/>')
+text(714, y + 5, name, 13, "bold", "start", ink)
+text(896, y + 5, f"{line} · {stm}", 11.5, "normal", "end", ink, ' opacity="0.9"')
+text(70, y + 40, "One RGB LED with three colour channels; each channel is a GPIO line (1 = on), "
+     "which gives 8 colours.", 12.5, "normal", "start", "#444")
 
-ny = oy + 78
+ny = oy + 104
 for i, note in enumerate([
     "All signals are 3.3 V logic: never connect 5 V to a GPIO. The header works with switch S3 in DFLT.",
     "ADC n = in_voltagen_raw of the IIO device \"dln2-adc\" (10-bit, 0-3.3 V). The I2C bus also carries the board's",
