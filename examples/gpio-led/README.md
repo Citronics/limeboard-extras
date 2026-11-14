@@ -1,0 +1,95 @@
+# Example 3: an LED on a header GPIO
+
+This example blinks an external LED connected to GPIO17 (header pin 11),
+the GPIO used by most Raspberry Pi tutorials.
+
+## Wiring
+
+You need an LED, a resistor of 330 Ω to 1 kΩ, and two jumper wires.
+
+```
+header pin 11 (GPIO17) ──── resistor ────►|──── header pin 9 (GND)
+                                     LED anode (long leg)   cathode (short leg)
+```
+
+- GPIO17 is header pin 11. GND is pin 9, its neighbour in the same
+  (odd-numbered) column.
+- The resistor limits the current. Without it, the LED or the
+  microcontroller pin can be damaged. With 330 Ω and a red LED the current
+  is about 4 mA.
+- The pins are 3.3 V. Never connect a GPIO to 5 V.
+
+Any of GPIO0 to GPIO27 works the same way. Pass its BCM number to the
+scripts below, and see [PINOUT.md](../../PINOUT.md) for its
+pin.
+
+## From the shell
+
+```sh
+chip=$(gpiodetect | awk '/\[dln2\]/ { print $1 }')
+
+gpioset -c $chip -t 0 17=1     # LED on
+gpioset -c $chip -t 0 17=0     # LED off
+gpioinfo -c $chip 17           # shows the line's direction and user
+```
+
+[`blink.sh`](blink.sh) blinks the LED at 1 Hz until Ctrl-C:
+
+```sh
+sudo ./blink.sh        # GPIO17
+sudo ./blink.sh 27     # GPIO27, header pin 13
+```
+
+It runs `gpioset -t 500ms,500ms 17=1`, which repeats 500 ms on and 500 ms
+off.
+
+## From Python
+
+[`blink.py`](blink.py) does the same with the libgpiod v2 Python bindings:
+
+```sh
+sudo python3 blink.py        # GPIO17
+sudo python3 blink.py 27     # GPIO27
+```
+
+The essential part:
+
+```python
+import time
+import gpiod
+from gpiod.line import Direction, Value
+
+with gpiod.request_lines(
+    "/dev/gpiochip4",           # use find_chip() from blink.py
+    consumer="blink",
+    config={17: gpiod.LineSettings(direction=Direction.OUTPUT)},
+) as led:
+    while True:
+        led.set_value(17, Value.ACTIVE)
+        time.sleep(0.5)
+        led.set_value(17, Value.INACTIVE)
+        time.sleep(0.5)
+```
+
+## Reading a push button
+
+Inputs work the same way. Wire a push button between GPIO27 (pin 13) and
+3.3 V (pin 1 or 17), and a 10 kΩ resistor from GPIO27 to GND (pin 14) so
+that the input reads 0 when the button is released:
+
+```sh
+gpioget -c $chip 27                 # 1 while pressed
+gpiomon -c $chip -e both 27         # an event on each press and release
+```
+
+In Python, request the line with
+`gpiod.LineSettings(direction=Direction.INPUT)` and read it with
+`request.get_value(27)`.
+
+## Notes
+
+- A GPIO is on or off. The firmware has no PWM, so an LED on a GPIO
+  cannot be dimmed. Every change also goes over USB and takes about a
+  millisecond, so do not expect precise timing below a few milliseconds.
+- If a request fails with `Device or resource busy`, another program owns
+  the line. `gpioinfo -c $chip 17` shows which one.
