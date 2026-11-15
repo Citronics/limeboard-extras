@@ -92,8 +92,10 @@ print([hex(a) for a in i2c.scan()])
 ```
 
 `board` has the Raspberry Pi names (`D0`-`D27`, `SDA`, `SCL`, `MOSI`, `MISO`,
-`SCLK`, `CE0`, `CE1`, `TX`, `RX`) plus `LED_R`, `LED_G`, `LED_B` and
-`BUTTON`. `board.board_id` is `"LIMEBOARD"`.
+`SCLK`, `CE0`, `CE1`, `TX`, `RX`; for the second buses `SDA0`, `SCL0`,
+`SCLK_1`, `MOSI_1`, `MISO_1`, `CE0_1`-`CE2_1`) plus `LED_R`, `LED_G`, `LED_B`
+and `BUTTON`. `board.board_id` is `"LIMEBOARD"`. The second I2C bus is
+`busio.I2C(board.SCL0, board.SDA0)`.
 
 ## Limits
 
@@ -110,8 +112,9 @@ These come from the Limeboard, not from the libraries:
   that send a whole frame buffer at once must split it. Adafruit's SSD1306
   driver does with `page_addressing=True`:
   `adafruit_ssd1306.SSD1306_I2C(128, 64, board.I2C(), page_addressing=True)`.
-- **SPI** is `board.SPI()`, on `/dev/spidev0.0`. A library's chip select
-  must be another GPIO than CE0 and CE1, which belong to the bus. SPI is
+- **SPI** is `board.SPI()` (SPI0); the second bus is
+  `busio.SPI(board.SCLK_1, board.MOSI_1, board.MISO_1)`. A library's chip
+  select must be another GPIO than the bus's CE pins, which belong to it. SPI is
   slower than on a Pi: a USB round trip per 256 bytes.
 - **The UART** is the USB serial port `/dev/ttyACM*`: open it with
   `serial.Serial("/dev/ttyACM0", 9600)`, not `busio.UART`.
