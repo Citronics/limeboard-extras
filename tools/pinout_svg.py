@@ -192,7 +192,7 @@ text(70, y + 40, "One RGB LED with three colour channels; each channel is a GPIO
 ny = oy + 104
 for i, note in enumerate([
     "All signals are 3.3 V logic: never connect 5 V to a GPIO. The header works with switch S3 in DFLT.",
-    "Bus pins stay plain GPIO until the bus is used. The second buses need the kernel's multi-port dln2 driver.",
+    "I2C and SPI are off until /etc/limeboard/config.txt turns them on (dtparam=i2c_arm=on, dtparam=spi=on...).",
     "ADC n = in_voltagen_raw of the IIO device \"dln2-adc\" (10-bit, 0-3.3 V). I2C1 also carries the board's",
     "power controller at 0x28. No hardware PWM. Pin positions follow the Raspberry Pi layout. Details: PINOUT.md",
 ]):

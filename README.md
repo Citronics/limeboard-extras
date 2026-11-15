@@ -13,6 +13,7 @@ repository.
 
 - [What the firmware provides](#what-the-firmware-provides)
 - [Header pinout](#header-pinout) (complete version: [PINOUT.md](PINOUT.md))
+- [Turning the buses on](#turning-the-buses-on)
 - [Software to install](#software-to-install)
 - [Finding the devices](#finding-the-devices)
 - [gpiozero](#gpiozero)
@@ -51,10 +52,12 @@ it into these devices:
 | USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15: [the only UART](#one-uart) |
 
 The GPIO line number is the BCM GPIO number, so GPIO17 is line 17 of the
-`dln2` chip. A pin is a plain GPIO until a function uses it. I2C, SPI and
-the ADC claim their pins on first use (an SPI chip select on its own first
-use), and the UART claims its pins while its serial port is open. A claimed
-pin stays with its function until the STM32 resets.
+`dln2` chip. As on a Raspberry Pi, the I2C and SPI buses are off until you
+turn them on ([below](#turning-the-buses-on)). A pin is a plain GPIO until a
+function uses it: a bus that is on claims its pins when a program first uses
+it (an SPI chip select on its own first use), the ADC on first use, and the
+UART while its serial port is open. A claimed pin stays with its function
+until the STM32 resets.
 
 ### Bus names
 
@@ -71,6 +74,8 @@ the phone's own:
 | 19, 21, 23, chip selects 24, 26 | spi0 | `/dev/spidev0.0`, `0.1` | |
 | 38, 35, 40, chip selects 12, 11, 36 | spi1 | `/dev/spidev1.0`, `1.1`, `1.2` | |
 
+The numbers are those with both I2C buses on: Linux numbers the buses in
+the order they appear, so with only i2c0 on it is `/dev/i2c-1`.
 `/dev/i2c-0` is the phone's own I2C controller, so the Limeboard's i2c0 cannot
 be `/dev/i2c-0`. Find a bus by its name instead of its number:
 `i2cdetect -l | grep dln2`. The `-0` or `-1` at the end of the name is the
@@ -95,8 +100,38 @@ Check that the firmware is running:
 ```sh
 lsusb | grep 1209:0001         # the Limeboard I/O firmware
 gpiodetect | grep dln2         # its GPIO chip
-i2cdetect -l | grep dln2       # its I2C buses
+i2cdetect -l | grep dln2       # its I2C buses, once turned on
 ```
+
+## Turning the buses on
+
+As on a Raspberry Pi, the I2C and SPI buses are off by default. Turn them on
+in `/etc/limeboard/config.txt`, with the lines a Pi's `config.txt` uses:
+
+| Line | Bus | Pins |
+|---|---|---|
+| `dtparam=i2c_arm=on` | i2c1, the usual I2C bus | SDA GPIO2 (pin 3), SCL GPIO3 (pin 5) |
+| `dtoverlay=i2c0` or `dtparam=i2c_vc=on` | i2c0 | SDA GPIO0 (pin 27), SCL GPIO1 (pin 28) |
+| `dtparam=spi=on` | spi0, `/dev/spidev0.0` and `0.1` | GPIO9-11, CE0 GPIO8, CE1 GPIO7 |
+| `dtoverlay=spi0-1cs` | spi0 with CE0 only | |
+| `dtoverlay=spi1-1cs`, `spi1-2cs`, `spi1-3cs` | spi1, `/dev/spidev1.0` to `1.2` | GPIO19-21, CE0 GPIO18, CE1 GPIO17, CE2 GPIO16 |
+| `spi0_cs1=mcp3008` | a kernel driver on a chip select ([SPI example](examples/spi/README.md#choosing-the-devices-on-the-chip-selects)) | |
+
+Then apply the file with `limeboard-config`. Unlike on a Pi, there is no
+reboot: the change applies at once, or, if a program is using a bus, when
+the board's STM32 next resets.
+
+```sh
+sudo limeboard-config                   # apply /etc/limeboard/config.txt
+sudo limeboard-config enable i2c1       # add the line and apply, like raspi-config
+sudo limeboard-config disable spi1
+limeboard-config show                   # i2c1: on, i2c0: off, spi0: off, ...
+```
+
+`limeboard-config` writes the settings of the kernel's `dln2` drivers to
+`/etc/modprobe.d/limeboard.conf`; do not edit that file. Lines the Limeboard
+does not support are reported and ignored. The buses need a kernel with the
+Limeboard's dln2 changes: `modinfo -p i2c_dln2` lists `ports` on those.
 
 ## Header pinout
 
@@ -262,7 +297,7 @@ What to keep in mind:
   port) work. See [HATS.md](HATS.md).
 - **SPI chips without device tree.** `/dev/spidev0.x` and `1.x` work as on
   a Pi. To put a kernel driver on a chip select instead, set it in
-  `/etc/modprobe.d/limeboard-spi.conf` (see the [SPI example](examples/spi/README.md)).
+  `/etc/limeboard/config.txt` (see the [SPI example](examples/spi/README.md)).
 - **One I2C bus and one SPI bus.** The Pi's second SPI bus (GPIO16-21) is
   not available.
 - **ADC.** The header has eight 10-bit analog inputs, which the Pi lacks.

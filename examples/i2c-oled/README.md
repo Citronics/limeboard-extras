@@ -16,6 +16,16 @@ answer at address 0x3C.
 Most SSD1306 modules carry their own regulator and pull-up resistors and
 accept 3.3 V or 5 V on VCC. Their SDA and SCL lines must stay at 3.3 V.
 
+## Turn on I2C
+
+As on a Raspberry Pi, the I2C bus is off by default:
+
+```sh
+sudo limeboard-config enable i2c1       # adds dtparam=i2c_arm=on to /etc/limeboard/config.txt
+```
+
+See [Turning the buses on](../../README.md#turning-the-buses-on).
+
 ## Check that the display answers
 
 ```sh
@@ -57,6 +67,7 @@ pin 28), where a Raspberry Pi has its i2c0 (see
 pin 27 and SCL to pin 28, keep VCC and GND, then:
 
 ```sh
+sudo limeboard-config enable i2c0     # dtoverlay=i2c0
 i2cdetect -l | grep dln2              # two buses: names end in -0 (GPIO2/3) and -1 (GPIO0/1)
 sudo i2cdetect -y -r 2                # the -1 bus: /dev/i2c-2 on a Fairphone 2
 sudo ~/limeboard-venv/bin/python oled.py 3c 1

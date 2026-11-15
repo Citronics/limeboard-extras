@@ -34,7 +34,8 @@ differences:
 | UART | `/dev/serial0`, and more UARTs on the Pi 4 and 5 | one: `/dev/ttyACM*`, a USB serial port ([why](README.md#one-uart)) |
 | I2S / PCM audio | yes | no |
 | DPI display, GPCLK | yes | no |
-| Device tree overlays (`dtoverlay=`) | yes | no: the buses come over USB. SPI chips: `/etc/modprobe.d/limeboard-spi.conf`; I2C chips: `new_device` |
+| `config.txt`: `dtparam=i2c_arm=on`, `dtparam=spi=on`, `dtoverlay=spi1-3cs`, `dtoverlay=i2c0` | yes, buses off by default | the same lines in `/etc/limeboard/config.txt`, buses off by default ([Turning the buses on](README.md#turning-the-buses-on)) |
+| Device tree overlays for chips (`dtoverlay=mcp2515`…) | yes | no: the buses come over USB. SPI chips: `spi0_cs0=mcp2515,irq=25` in `config.txt`; I2C chips: `new_device` |
 | HAT ID EEPROM (GPIO0/1) | read at boot, configures the HAT | not read: GPIO0/1 are plain GPIOs |
 
 ### Kernel drivers and device tree overlays
@@ -65,12 +66,14 @@ needs a kernel with the Limeboard's dln2 changes (`modinfo -p spi_dln2` lists
 `spi0_cs0` to `spi1_cs3`). Older kernels have one SPI controller and no
 `/dev/spidev`.
 
-On a Pi, a `dtoverlay=` line puts a kernel driver on a chip select instead.
-On the Limeboard that is a line in `/etc/modprobe.d/limeboard-spi.conf`,
-with the chip's name and optionally its interrupt GPIO:
+As on a Pi, the buses are off until `/etc/limeboard/config.txt` turns them
+on (`dtparam=spi=on`, `dtoverlay=spi1-3cs`). A Pi puts a kernel driver on a
+chip select with a `dtoverlay=` for that chip. On the Limeboard that is a
+line in the same file, with the chip's name and optionally its interrupt
+GPIO:
 
 ```sh
-options spi_dln2 spi0_cs0=mcp2515,irq=25,speed=10000000
+spi0_cs0=mcp2515,irq=25,speed=10000000
 ```
 
 The driver must be in the kernel; the Lime kernels do not build SPI chip

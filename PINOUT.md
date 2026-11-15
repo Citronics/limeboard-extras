@@ -110,7 +110,9 @@ hardware PWM, PCM/I2S audio, GPCLK, and more than one UART (see
 are a plain second I2C bus here.
 
 The buses, with their Raspberry Pi names (see [Bus names](README.md#bus-names)
-for their Linux devices):
+for their Linux devices). As on a Pi, they are off until
+`/etc/limeboard/config.txt` turns them on (see
+[Turning the buses on](README.md#turning-the-buses-on)):
 - i2c1 on GPIO2/3, the usual I2C bus, and i2c0 on GPIO0/1;
 - SPI0 (`/dev/spidev0.0`, `0.1`) on GPIO9-11, chip selects GPIO8/7;
 - SPI1 (`/dev/spidev1.0`, `1.1`, `1.2`) on GPIO19-21, chip selects GPIO18/17/16.

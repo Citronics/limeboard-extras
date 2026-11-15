@@ -41,7 +41,11 @@ the phone is the SoC's own pins.
 
 ## Using it
 
-Pins have their Raspberry Pi numbers (BCM): GPIO17 is header pin 11. The
+Pins have their Raspberry Pi numbers (BCM): GPIO17 is header pin 11. As on a
+Pi, the I2C and SPI buses are off until you turn them on (`sudo
+limeboard-config enable i2c1`, see
+[Turning the buses on](../README.md#turning-the-buses-on)); GPIO needs no
+setup. The
 onboard RGB LED and the user button have their own names.
 
 ### RPi.GPIO

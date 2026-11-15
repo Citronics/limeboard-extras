@@ -13,10 +13,20 @@ The Limeboard has two SPI buses, on the Raspberry Pi's spi0 and spi1 pins:
 | Device files | `/dev/spidev0.0`, `0.1` | `/dev/spidev1.0`, `1.1`, `1.2` |
 | Clock | 328 kHz to 42 MHz | 164 kHz to 21 MHz |
 
-As on a Pi with spi0 and spi1 enabled, programs open the `/dev/spidevB.C`
-of their bus B and chip select C. A bus's pins stay plain GPIOs until the bus
-is used, and each chip select's pin until that chip select is used. So
-SPI1 only takes GPIO16/17 if you use its CE1/CE2.
+Both buses are off by default, as on a Pi. Turn them on with the same
+lines as a Pi's `config.txt`, in `/etc/limeboard/config.txt`, or with
+`limeboard-config` (see [Turning the buses on](../../README.md#turning-the-buses-on)):
+
+```sh
+sudo limeboard-config enable spi0       # dtparam=spi=on: /dev/spidev0.0, 0.1
+sudo limeboard-config enable spi1       # dtoverlay=spi1-3cs: /dev/spidev1.0, 1.1, 1.2
+```
+
+Programs then open the `/dev/spidevB.C` of their bus B and chip select C. A
+bus's pins stay plain GPIOs until a program uses the bus, and each chip
+select's pin until that chip select is used, so SPI1 only takes GPIO16/17 if
+you use its CE1/CE2. For SPI1 with fewer chip selects, use
+`dtoverlay=spi1-1cs` or `spi1-2cs` in the file.
 
 These need a kernel with the Limeboard's dln2 changes (Citronics kernels
 with "spi: dln2: add the devices on the chip selects" and "mfd: dln2: add a
@@ -25,6 +35,8 @@ cell for each I2C and SPI port"): `modinfo -p spi_dln2` lists `spi0_cs0` to
 `/dev/spidev`.
 
 ## Check the bus: loopback
+
+Turn the bus on first (`sudo limeboard-config enable spi0`, or `spi1`).
 
 Connect MOSI to MISO with a jumper wire, pin 19 to 21 for SPI0, pin 38 to
 35 for SPI1, then:
@@ -82,37 +94,37 @@ select: those belong to the SPI bus once used.
 
 ## Choosing the devices on the chip selects
 
-By default every chip select is `spidev`. To use a kernel driver for a chip
-instead, as a `dtoverlay=` line would on a Pi, set it in
-`/etc/modprobe.d/limeboard-spi.conf` with `spi<bus>_cs<chip select>`:
+`dtparam=spi=on` and the `spi1-Ncs` overlays put `spidev` on the chip
+selects. To use a kernel driver for a chip instead, as a `dtoverlay=` for
+that chip would on a Pi, add a line to `/etc/limeboard/config.txt` with
+`spi<bus>_cs<chip select>`:
 
 ```sh
-options spi_dln2 spi0_cs1=mcp3008
+spi0_cs1=mcp3008
 ```
 
-Each chip select takes `<device>[,irq=<gpio>][,speed=<hz>][,mode=<0-3>]`:
+Each takes `<device>[,irq=<gpio>][,speed=<hz>][,mode=<0-3>]`:
 
 | Part | Meaning |
 |---|---|
-| `<device>` | `spidev` (default), `none`, or a kernel driver's device name, e.g. `mcp3008` (driver `mcp320x`), `mcp2515` (`mcp251x`) |
+| `<device>` | `spidev`, `none`, or a kernel driver's device name, e.g. `mcp3008` (driver `mcp320x`), `mcp2515` (`mcp251x`) |
 | `irq=<gpio>` | the header GPIO (BCM number) wired to the chip's interrupt pin |
 | `speed=<hz>` | the chip's maximum clock |
 | `mode=<0-3>` | SPI mode (clock polarity and phase) |
 
-For example, an MCP2515 CAN controller on SPI1 CE0 with its interrupt on
-GPIO25, and SPI1's other chip selects off:
+A chip select set this way is on even if its bus is not. For example, an
+MCP2515 CAN controller on SPI1 CE0 with its interrupt on GPIO25:
 
 ```sh
-options spi_dln2 spi1_cs0=mcp2515,irq=25,speed=10000000 spi1_cs1=none spi1_cs2=none
+spi1_cs0=mcp2515,irq=25,speed=10000000
 ```
 
-The settings apply when the firmware appears. After a change, reboot, or:
+Then apply and check:
 
 ```sh
-sudo udevadm control --reload                         # for later resets of the STM32
-sudo rmmod spi_dln2 && sudo modprobe spi_dln2          # apply now
-ls /sys/bus/spi/devices/                              # spi0.0 ... spi1.2
-cat /sys/bus/spi/devices/spi0.1/modalias              # spi:mcp3008
+sudo limeboard-config
+ls /sys/bus/spi/devices/                              # spi1.0
+cat /sys/bus/spi/devices/spi1.0/modalias              # spi:mcp2515
 ```
 
 The kernel driver itself must be available: `modinfo mcp320x` must find it.
