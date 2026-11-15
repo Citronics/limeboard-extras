@@ -107,7 +107,8 @@ The same data sorted by GPIO:
 Compared with a Raspberry Pi, the Limeboard I/O firmware does not provide:
 hardware PWM, the second SPI bus (GPIO16-21), PCM/I2S audio, GPCLK, and the
 HAT ID EEPROM bus on GPIO0/1 (they are plain GPIOs here). The Linux `dln2`
-driver supports one I2C bus, one SPI bus and up to 32 GPIO lines.
+driver supports one I2C bus, one SPI bus and up to 32 GPIO lines. The SPI bus
+has no `/dev/spidev` devices yet; see [HATS.md](HATS.md#spi).
 
 ## Onboard signals of the STM32
 

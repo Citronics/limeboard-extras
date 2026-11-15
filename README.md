@@ -4,7 +4,8 @@ The Limeboard is a Citronics carrier board for the Fairphone 2 and 3. Its
 STM32 microcontroller runs the **Limeboard I/O firmware**, which turns the
 board's 40-pin header into ordinary Linux devices, numbered like a
 Raspberry Pi's. Programs talk to them with the same tools and libraries as
-on a Pi: gpiozero, libgpiod, i2c-tools, smbus2, spidev, luma.oled.
+on a Pi: gpiozero, libgpiod, i2c-tools, smbus2, luma.oled. Which Raspberry
+Pi HATs work is in [HATS.md](HATS.md).
 
 This guide covers using the header with that firmware installed. For
 building or flashing the firmware itself, see the `limeboard-firmware`
@@ -16,6 +17,7 @@ repository.
 - [Finding the devices](#finding-the-devices)
 - [gpiozero](#gpiozero)
 - [Differences from a Raspberry Pi](#differences-from-a-raspberry-pi)
+- [Which Raspberry Pi HATs work](HATS.md)
 - Examples:
   1. [Onboard RGB LED](examples/onboard-led/README.md)
   2. [I2C OLED display](examples/i2c-oled/README.md)
@@ -39,7 +41,7 @@ it into these devices:
 | GPIO chip `dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
 | GPIO chip `dln2`, line 31 | onboard user button (input) |
 | I2C bus `dln2-i2c` (`/dev/i2c-N`) | SDA GPIO2, SCL GPIO3, 100 kHz |
-| SPI controller (`spidev`) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 |
+| SPI controller `spi0` (no `/dev/spidev` yet, see [HATS.md](HATS.md#spi)) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 |
 | IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
 | USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15 |
 
@@ -211,6 +213,13 @@ What to keep in mind:
 - **I2C messages are limited to 256 bytes.** Most drivers send small
   messages and are not affected. A library that writes a whole frame buffer
   in one message must split it; see the [OLED example](examples/i2c-oled/README.md).
+- **No device tree overlays.** On a Pi, most HATs work through a
+  `dtoverlay=` line that loads their kernel driver. The Limeboard's buses
+  come over USB and cannot take overlays, so HAT kernel drivers do not load.
+  Programs that drive the chips themselves (through I2C, GPIO or the serial
+  port) work. See [HATS.md](HATS.md).
+- **No `/dev/spidev` yet.** The SPI controller exists, but nothing creates
+  `spidev` devices on it, so programs cannot use SPI yet.
 - **One I2C bus and one SPI bus.** The Pi's second SPI bus (GPIO16-21) is
   not available.
 - **ADC.** The header has eight 10-bit analog inputs, which the Pi lacks.
