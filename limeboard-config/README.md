@@ -1,18 +1,27 @@
 # limeboard-config
 
-Turns the Limeboard header's I2C and SPI buses on and off, the Raspberry Pi
-way: they are off until `/etc/limeboard/config.txt` turns them on with the
+`raspi-config` for the Limeboard: it sets up the header's buses, the serial
+console and the STM32 firmware. See
+[Turning the buses on](../README.md#turning-the-buses-on) and
+[Serial console, firmware and raspi-config](../README.md#serial-console-firmware-and-raspi-config).
+
+The buses are off until `/etc/limeboard/config.txt` turns them on with the
 lines of a Pi's `config.txt` (`dtparam=i2c_arm=on`, `dtparam=spi=on`,
-`dtoverlay=spi1-3cs`, `dtoverlay=i2c0`). See
-[Turning the buses on](../README.md#turning-the-buses-on).
+`dtoverlay=spi1-3cs`, `dtoverlay=i2c0`); `serial_console=on` adds a login
+console on `/dev/serial0`.
 
 | File | Installed as |
 |---|---|
 | `limeboard-config` | `/usr/bin/limeboard-config` |
-| `config.txt` | `/etc/limeboard/config.txt`, every bus off |
+| `raspi-config` | `/usr/bin/raspi-config`: `raspi-config nonint` commands, answered by `limeboard-config` |
+| `config.txt` | `/etc/limeboard/config.txt`, everything off |
 | `limeboard.conf` | `/etc/modprobe.d/limeboard.conf`: what `limeboard-config` generates from that `config.txt` |
+| `limeboard-serial-console` | `/usr/libexec/limeboard-serial-console`: waits for `/dev/serial0`, runs `getty` on it |
+| `limeboard-serial-console.service` | the systemd service running it (Debian, Ubuntu); Buildroot uses an `/etc/inittab` line |
+| `limeboard-io.version` | `/usr/share/limeboard/limeboard-io.version`, next to the firmware `limeboard-io.bin` built from `limeboard-firmware` |
 
-`limeboard-config` writes the parameters of the kernel's `i2c_dln2` (`ports`)
-and `spi_dln2` (`spi<bus>_cs<n>`) modules to `/etc/modprobe.d/limeboard.conf`,
-reloads udev's module settings, and reloads the two modules when no program
-is using them. Lime images (Buildroot, Debian, Ubuntu) install all three.
+For the buses, `limeboard-config` writes the parameters of the kernel's
+`i2c_dln2` (`ports`) and `spi_dln2` (`spi<bus>_cs<n>`) modules to
+`/etc/modprobe.d/limeboard.conf`, reloads udev's module settings, and reloads
+the two modules when no program is using them. The firmware update uses
+`dfu-util`. Lime images (Buildroot, Debian, Ubuntu) install all of these.
