@@ -43,22 +43,38 @@ it into these devices:
 | GPIO chip `dln2`, lines 0-27 | header GPIO0 to GPIO27 (BCM numbering) |
 | GPIO chip `dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
 | GPIO chip `dln2`, line 31 | onboard user button (input) |
-| I2C bus `dln2-i2c` (`/dev/i2c-N`) | SDA GPIO2, SCL GPIO3, 100 kHz |
-| SPI `/dev/spidev0.0`, `/dev/spidev0.1` ([SPI example](examples/spi/README.md)) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 |
+| I2C bus 1 (`/dev/i2c-N`, Pi i2c1) | SDA GPIO2, SCL GPIO3, 100 kHz |
+| I2C bus 0 (Pi i2c0) | SDA GPIO0, SCL GPIO1, 100 kHz ([second I2C bus](examples/i2c-oled/README.md#on-the-second-i2c-bus)) |
+| SPI 0: `/dev/spidev0.0`, `/dev/spidev0.1` (Pi spi0) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 ([SPI example](examples/spi/README.md)) |
+| SPI 1: `/dev/spidev1.0`, `1.1`, `1.2` (Pi spi1) | MOSI GPIO20, MISO GPIO19, SCLK GPIO21, CE0 GPIO18, CE1 GPIO17, CE2 GPIO16 |
 | IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
-| USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15 |
+| USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15: [the only UART](#one-uart) |
 
 The GPIO line number is the BCM GPIO number, so GPIO17 is line 17 of the
 `dln2` chip. A pin is a plain GPIO until a function uses it. I2C, SPI and
-the ADC claim their pins on first use, and the UART claims its pins while
-its serial port is open.
+the ADC claim their pins on first use (an SPI chip select on its own first
+use), and the UART claims its pins while its serial port is open. A claimed
+pin stays with its function until the STM32 resets.
+
+The second I2C and SPI buses need a kernel whose `dln2` driver adds a bus for
+each port (Citronics kernels with "mfd: dln2: add a cell for each I2C and
+SPI port"); older kernels show only the first of each.
+
+### One UART
+
+The header has a single UART, on GPIO14 (TXD, pin 8) and GPIO15 (RXD,
+pin 10), as `/dev/ttyACM*`. The STM32's other UARTs have no usable TX/RX
+pair on the header: one has its TX on GPIO3, which is I2C, the other its RX
+on the onboard LED. Each UART also needs its own USB serial interface, and
+the STM32's USB has no endpoints left for a second one. For more serial
+ports, use USB serial adapters in the board's USB ports.
 
 Check that the firmware is running:
 
 ```sh
 lsusb | grep 1209:0001         # the Limeboard I/O firmware
 gpiodetect | grep dln2         # its GPIO chip
-i2cdetect -l | grep dln2       # its I2C bus
+i2cdetect -l | grep dln2       # its I2C buses
 ```
 
 ## Header pinout
@@ -223,7 +239,7 @@ What to keep in mind:
   come over USB and cannot take overlays, so HAT kernel drivers do not load.
   Programs that drive the chips themselves (through I2C, GPIO or the serial
   port) work. See [HATS.md](HATS.md).
-- **SPI chips without device tree.** `/dev/spidev0.0` and `0.1` work as on
+- **SPI chips without device tree.** `/dev/spidev0.x` and `1.x` work as on
   a Pi. To put a kernel driver on a chip select instead, set it in
   `/etc/modprobe.d/limeboard-spi.conf` (see the [SPI example](examples/spi/README.md)).
 - **One I2C bus and one SPI bus.** The Pi's second SPI bus (GPIO16-21) is

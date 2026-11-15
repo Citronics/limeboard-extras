@@ -29,11 +29,11 @@ differences:
 | GPIO | direct, microsecond timing | over USB: about 1 ms per operation. Edge events work |
 | Pull-up / pull-down resistors | internal, per pin | none: use external resistors |
 | PWM | 2 hardware channels | none |
-| I2C | up to 400 kHz and more | one bus, 100 kHz, 256 bytes per message |
-| SPI | `/dev/spidev0.0`, `/dev/spidev0.1` | the same, slower: a USB round trip per 256 bytes ([below](#spi)) |
-| UART | `/dev/serial0` | `/dev/ttyACM*`, a USB serial port |
+| I2C | i2c1 (and i2c0), up to 400 kHz and more | i2c1 and i2c0, in the same positions, 100 kHz, 256 bytes per message |
+| SPI | spi0, spi1 (`/dev/spidev0.x`, `1.x`) | the same two buses, slower: a USB round trip per 256 bytes ([below](#spi)) |
+| UART | `/dev/serial0`, and more UARTs on the Pi 4 and 5 | one: `/dev/ttyACM*`, a USB serial port ([why](README.md#one-uart)) |
 | I2S / PCM audio | yes | no |
-| DPI display, GPCLK, second SPI bus | yes | no |
+| DPI display, GPCLK | yes | no |
 | Device tree overlays (`dtoverlay=`) | yes | no: the buses come over USB. SPI chips: `/etc/modprobe.d/limeboard-spi.conf`; I2C chips: `new_device` |
 | HAT ID EEPROM (GPIO0/1) | read at boot, configures the HAT | not read: GPIO0/1 are plain GPIOs |
 
@@ -59,17 +59,18 @@ Two things still work:
 
 ### SPI
 
-The SPI bus works like a Pi's with SPI enabled: `/dev/spidev0.0` (CE0) and
-`/dev/spidev0.1` (CE1), for py-spidev, gpiozero and Blinka. This needs a
-kernel whose `spi-dln2` driver creates them (`modinfo -p spi_dln2` lists
-`cs0`-`cs3`). Older kernels have the SPI controller but no `/dev/spidev`.
+The SPI buses work like a Pi's spi0 and spi1: `/dev/spidev0.0` and `0.1`,
+`/dev/spidev1.0`, `1.1` and `1.2`, for py-spidev, gpiozero and Blinka. This
+needs a kernel with the Limeboard's dln2 changes (`modinfo -p spi_dln2` lists
+`spi0_cs0` to `spi1_cs3`). Older kernels have one SPI controller and no
+`/dev/spidev`.
 
 On a Pi, a `dtoverlay=` line puts a kernel driver on a chip select instead.
 On the Limeboard that is a line in `/etc/modprobe.d/limeboard-spi.conf`,
 with the chip's name and optionally its interrupt GPIO:
 
 ```sh
-options spi_dln2 cs0=mcp2515,irq=25,speed=10000000
+options spi_dln2 spi0_cs0=mcp2515,irq=25,speed=10000000
 ```
 
 The driver must be in the kernel; the Lime kernels do not build SPI chip
@@ -142,7 +143,7 @@ work.
 | Audio: HiFiBerry, IQaudio, pHAT DAC, ReSpeaker microphones | need I2S, which the header does not carry. Use a USB sound card instead |
 | SPI displays with kernel drivers: PiTFT, Waveshare 3.5" LCD | need a kernel driver loaded by a device tree overlay |
 | DPI displays | the Pi's parallel display signals are not on the header |
-| CAN HATs (MCP2515) | possible with `cs0=mcp2515,irq=…`, but the Lime kernels do not build the CAN driver yet, and its oscillator clock comes from the device tree on a Pi |
+| CAN HATs (MCP2515) | possible with `spi0_cs0=mcp2515,irq=…`, but the Lime kernels do not build the CAN driver yet, and its oscillator clock comes from the device tree on a Pi |
 | Addressable LEDs from the Pi: Unicorn HAT, NeoPixel HATs | driven by the Pi's PWM, PCM or SPI timing |
 | Servos or motors straight on a GPIO, passive buzzers, dimmable LEDs | need PWM. Use a PCA9685 board |
 | DHT11/DHT22, HC-SR04, IR receivers and transmitters, 1-Wire on a GPIO | need microsecond timing; USB adds about 1 ms per operation |

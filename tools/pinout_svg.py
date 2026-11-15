@@ -12,44 +12,44 @@ from xml.sax.saxutils import escape
 PINS = {
     1: ("3.3 V", "3v3", ""),
     2: ("5 V", "5v", ""),
-    3: ("GPIO2", "i2c", "I2C SDA · PB9"),
+    3: ("GPIO2", "i2c", "I2C1 SDA · PB9"),
     4: ("5 V", "5v", ""),
-    5: ("GPIO3", "i2c", "I2C SCL · PB6"),
+    5: ("GPIO3", "i2c", "I2C1 SCL · PB6"),
     6: ("GND", "gnd", ""),
     7: ("GPIO4", "gpio", "PC9"),
     8: ("GPIO14", "uart", "UART TXD · PA2"),
     9: ("GND", "gnd", ""),
     10: ("GPIO15", "uart", "UART RXD · PA3"),
-    11: ("GPIO17", "adc", "ADC 4 · PC1"),
-    12: ("GPIO18", "gpio", "PC6"),
+    11: ("GPIO17", "spi_b", "SPI1 CE1 · ADC 4 · PC1"),
+    12: ("GPIO18", "spi_b", "SPI1 CE0 · PC6"),
     13: ("GPIO27", "gpio", "PB8"),
     14: ("GND", "gnd", ""),
     15: ("GPIO22", "adc", "ADC 3 · PC0"),
     16: ("GPIO23", "adc", "ADC 7 · PC4"),
     17: ("3.3 V", "3v3", ""),
     18: ("GPIO24", "gpio", "PB5"),
-    19: ("GPIO10", "spi", "SPI MOSI · PA7"),
+    19: ("GPIO10", "spi", "SPI0 MOSI · PA7"),
     20: ("GND", "gnd", ""),
-    21: ("GPIO9", "spi", "SPI MISO · PA6"),
+    21: ("GPIO9", "spi", "SPI0 MISO · PA6"),
     22: ("GPIO25", "adc", "ADC 5 · PC2"),
-    23: ("GPIO11", "spi", "SPI SCLK · PA5"),
-    24: ("GPIO8", "spi", "SPI CE0 · PA1"),
+    23: ("GPIO11", "spi", "SPI0 SCLK · PA5"),
+    24: ("GPIO8", "spi", "SPI0 CE0 · PA1"),
     25: ("GND", "gnd", ""),
-    26: ("GPIO7", "spi", "SPI CE1 · PA4"),
-    27: ("GPIO0", "gpio", "PB4"),
-    28: ("GPIO1", "gpio", "PA8"),
+    26: ("GPIO7", "spi", "SPI0 CE1 · PA4"),
+    27: ("GPIO0", "i2c_b", "I2C0 SDA · PB4"),
+    28: ("GPIO1", "i2c_b", "I2C0 SCL · PA8"),
     29: ("GPIO5", "adc", "ADC 0 · PA0"),
     30: ("GND", "gnd", ""),
     31: ("GPIO6", "gpio", "PA10"),
     32: ("GPIO12", "adc", "ADC 1 · PB0"),
     33: ("GPIO13", "gpio", "PB13"),
     34: ("GND", "gnd", ""),
-    35: ("GPIO19", "gpio", "PB14"),
-    36: ("GPIO16", "adc", "ADC 2 · PB1"),
+    35: ("GPIO19", "spi_b", "SPI1 MISO · PB14"),
+    36: ("GPIO16", "spi_b", "SPI1 CE2 · ADC 2 · PB1"),
     37: ("GPIO26", "gpio", "PB15"),
-    38: ("GPIO20", "adc", "ADC 6 · PC3"),
+    38: ("GPIO20", "spi_b", "SPI1 MOSI · ADC 6 · PC3"),
     39: ("GND", "gnd", ""),
-    40: ("GPIO21", "gpio", "PB10"),
+    40: ("GPIO21", "spi_b", "SPI1 SCLK · PB10"),
 }
 
 # One RGB LED: each colour channel is driven by its own STM32 pin
@@ -67,6 +67,8 @@ COLOURS = {  # fill, text on fill
     "gpio": ("#7f9a4e", "#ffffff"),
     "i2c": ("#2f7fd0", "#ffffff"),
     "spi": ("#c4439a", "#ffffff"),
+    "i2c_b": ("#8fbbe8", "#0d2f55"),   # second bus: a pin that is GPIO until used
+    "spi_b": ("#e3a6cf", "#4d1239"),
     "uart": ("#7a52c7", "#ffffff"),
     "adc": ("#1f9e89", "#ffffff"),
     "led_r": ("#d8433b", "#ffffff"),
@@ -77,8 +79,10 @@ COLOURS = {  # fill, text on fill
 
 LEGEND = [
     ("3v3", "3.3 V"), ("5v", "5 V"), ("gnd", "Ground"), ("gpio", "GPIO"),
-    ("i2c", "I2C"), ("spi", "SPI"), ("uart", "UART (ttyACM)"), ("adc", "GPIO + ADC"),
+    ("adc", "GPIO + ADC"), ("uart", "UART (ttyACM, the only one)"), None,
+    ("i2c", "I2C1"), ("i2c_b", "I2C0 (second bus)"), ("spi", "SPI0"), ("spi_b", "SPI1 (second bus)"),
 ]
+LEGEND_WIDTH = {"uart": 220, "adc": 120, "i2c_b": 175, "spi_b": 175}
 
 FONT = "DejaVu Sans, Helvetica, Arial, sans-serif"
 W = 980
@@ -112,7 +116,7 @@ def label_box(x, y, w, pin, label, kind, details, align):
             text(x + w + 10, y + 5, details, 12, "normal", "start", "#444")
 
 
-H = TOP + 20 * ROW + 250
+H = TOP + 20 * ROW + 290
 out.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">')
 out.append(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
 
@@ -150,10 +154,15 @@ for row in range(20):
 # Legend
 ly = TOP + 20 * ROW + 28
 lx = 70
-for kind, name in LEGEND:
+for entry in LEGEND:
+    if entry is None:  # next row
+        lx, ly = 70, ly + 26
+        continue
+    kind, name = entry
+    width = LEGEND_WIDTH.get(kind, 95)
     out.append(f'<circle cx="{lx}" cy="{ly}" r="7" fill="{COLOURS[kind][0]}" stroke="#111" stroke-width="1"/>')
     text(lx + 13, ly + 4.5, name, 12.5)
-    lx += 106 if kind != "uart" else 130
+    lx += width
 
 # Onboard signals
 oy = ly + 46
@@ -183,7 +192,8 @@ text(70, y + 40, "One RGB LED with three colour channels; each channel is a GPIO
 ny = oy + 104
 for i, note in enumerate([
     "All signals are 3.3 V logic: never connect 5 V to a GPIO. The header works with switch S3 in DFLT.",
-    "ADC n = in_voltagen_raw of the IIO device \"dln2-adc\" (10-bit, 0-3.3 V). The I2C bus also carries the board's",
+    "Bus pins stay plain GPIO until the bus is used. The second buses need the kernel's multi-port dln2 driver.",
+    "ADC n = in_voltagen_raw of the IIO device \"dln2-adc\" (10-bit, 0-3.3 V). I2C1 also carries the board's",
     "power controller at 0x28. No hardware PWM. Pin positions follow the Raspberry Pi layout. Details: PINOUT.md",
 ]):
     text(70, ny + i * 19, note, 12.5, "normal", "start", "#444")

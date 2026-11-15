@@ -24,7 +24,7 @@ sudo i2cdetect -y -r 1               # use the bus number found above
 ```
 
 `3c` should appear in the table. The address `28` also appears: that is
-the board's own USB-C power controller, which shares the bus.
+the board's own USB-C power controller, which shares this bus (GPIO2/3).
 
 ## Install luma.oled
 
@@ -48,6 +48,25 @@ refreshed every second:
 sudo ~/limeboard-venv/bin/python oled.py          # address 0x3C
 sudo ~/limeboard-venv/bin/python oled.py 3d       # another address
 ```
+
+## On the second I2C bus
+
+The Limeboard has a second I2C bus on GPIO0 (SDA, pin 27) and GPIO1 (SCL,
+pin 28), where a Raspberry Pi has its i2c0. To use it, move the display's SDA
+to pin 27 and SCL to pin 28, keep VCC and GND, then:
+
+```sh
+i2cdetect -l | grep dln2              # two buses: names end in -0 (GPIO2/3) and -1 (GPIO0/1)
+sudo i2cdetect -y -r 2                # the -1 bus's number
+sudo ~/limeboard-venv/bin/python oled.py 3c 1
+```
+
+`oled.py`'s second argument is the Limeboard I2C port: 0 for GPIO2/3, 1 for
+GPIO0/1. With Blinka, the second bus is `busio.I2C(board.SCL0, board.SDA0)`.
+
+The second bus needs a kernel whose `dln2` driver adds a bus for each port.
+Its pins stay plain GPIOs until something uses the bus. Unlike on GPIO2/3, no
+other device of the board sits on it.
 
 ## The one difference from a Raspberry Pi
 

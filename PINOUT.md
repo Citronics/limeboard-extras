@@ -27,52 +27,52 @@ the pin besides plain GPIO. "ADC" gives the IIO channel
 | Function | ADC | STM32 | Line | Pin | Pin | Line | STM32 | ADC | Function |
 |---:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:---|
 | **3.3 V** | | | | 1 | 2 | | | | **5 V** |
-| I2C SDA | | PB9 | 2 | 3 | 4 | | | | **5 V** |
-| I2C SCL | | PB6 | 3 | 5 | 6 | | | | **GND** |
+| I2C1 SDA | | PB9 | 2 | 3 | 4 | | | | **5 V** |
+| I2C1 SCL | | PB6 | 3 | 5 | 6 | | | | **GND** |
 | | | PC9 | 4 | 7 | 8 | 14 | PA2 | | UART TXD |
 | **GND** | | | | 9 | 10 | 15 | PA3 | | UART RXD |
-| | 4 | PC1 | 17 | 11 | 12 | 18 | PC6 | | |
+| SPI1 CE1 | 4 | PC1 | 17 | 11 | 12 | 18 | PC6 | | SPI1 CE0 |
 | | | PB8 | 27 | 13 | 14 | | | | **GND** |
 | | 3 | PC0 | 22 | 15 | 16 | 23 | PC4 | 7 | |
 | **3.3 V** | | | | 17 | 18 | 24 | PB5 | | |
-| SPI MOSI | | PA7 | 10 | 19 | 20 | | | | **GND** |
-| SPI MISO | | PA6 | 9 | 21 | 22 | 25 | PC2 | 5 | |
-| SPI SCLK | | PA5 | 11 | 23 | 24 | 8 | PA1 | | SPI CE0 |
-| **GND** | | | | 25 | 26 | 7 | PA4 | | SPI CE1 |
-| | | PB4 | 0 | 27 | 28 | 1 | PA8 | | |
+| SPI0 MOSI | | PA7 | 10 | 19 | 20 | | | | **GND** |
+| SPI0 MISO | | PA6 | 9 | 21 | 22 | 25 | PC2 | 5 | |
+| SPI0 SCLK | | PA5 | 11 | 23 | 24 | 8 | PA1 | | SPI0 CE0 |
+| **GND** | | | | 25 | 26 | 7 | PA4 | | SPI0 CE1 |
+| I2C0 SDA | | PB4 | 0 | 27 | 28 | 1 | PA8 | | I2C0 SCL |
 | | 0 | PA0 | 5 | 29 | 30 | | | | **GND** |
 | | | PA10 | 6 | 31 | 32 | 12 | PB0 | 1 | |
 | | | PB13 | 13 | 33 | 34 | | | | **GND** |
-| | | PB14 | 19 | 35 | 36 | 16 | PB1 | 2 | |
-| | | PB15 | 26 | 37 | 38 | 20 | PC3 | 6 | |
-| **GND** | | | | 39 | 40 | 21 | PB10 | | |
+| SPI1 MISO | | PB14 | 19 | 35 | 36 | 16 | PB1 | 2 | SPI1 CE2 |
+| | | PB15 | 26 | 37 | 38 | 20 | PC3 | 6 | SPI1 MOSI |
+| **GND** | | | | 39 | 40 | 21 | PB10 | | SPI1 SCLK |
 
 The same data sorted by GPIO:
 
 | GPIO (line) | Header pin | STM32 | Function (Limeboard I/O firmware) | Raspberry Pi function |
 |:-:|:-:|:-:|---|---|
-| 0 | 27 | PB4 | GPIO | ID_SD (HAT EEPROM) |
-| 1 | 28 | PA8 | GPIO | ID_SC (HAT EEPROM) |
-| 2 | 3 | PB9 | I2C SDA (`dln2-i2c`) | I2C1 SDA |
-| 3 | 5 | PB6 | I2C SCL (`dln2-i2c`) | I2C1 SCL |
+| 0 | 27 | PB4 | GPIO, I2C0 SDA (second I2C bus) | I2C0 SDA (HAT EEPROM) |
+| 1 | 28 | PA8 | GPIO, I2C0 SCL (second I2C bus) | I2C0 SCL (HAT EEPROM) |
+| 2 | 3 | PB9 | I2C1 SDA | I2C1 SDA |
+| 3 | 5 | PB6 | I2C1 SCL | I2C1 SCL |
 | 4 | 7 | PC9 | GPIO | GPCLK0 |
 | 5 | 29 | PA0 | GPIO, ADC 0 | |
 | 6 | 31 | PA10 | GPIO | |
-| 7 | 26 | PA4 | SPI CE1 | SPI0 CE1 |
-| 8 | 24 | PA1 | SPI CE0 | SPI0 CE0 |
-| 9 | 21 | PA6 | SPI MISO | SPI0 MISO |
-| 10 | 19 | PA7 | SPI MOSI | SPI0 MOSI |
-| 11 | 23 | PA5 | SPI SCLK | SPI0 SCLK |
+| 7 | 26 | PA4 | SPI0 CE1 | SPI0 CE1 |
+| 8 | 24 | PA1 | SPI0 CE0 | SPI0 CE0 |
+| 9 | 21 | PA6 | SPI0 MISO | SPI0 MISO |
+| 10 | 19 | PA7 | SPI0 MOSI | SPI0 MOSI |
+| 11 | 23 | PA5 | SPI0 SCLK | SPI0 SCLK |
 | 12 | 32 | PB0 | GPIO, ADC 1 | PWM0 |
 | 13 | 33 | PB13 | GPIO | PWM1 |
 | 14 | 8 | PA2 | UART TXD (`/dev/ttyACM*`) | UART TXD |
 | 15 | 10 | PA3 | UART RXD (`/dev/ttyACM*`) | UART RXD |
-| 16 | 36 | PB1 | GPIO, ADC 2 | SPI1 CE2 |
-| 17 | 11 | PC1 | GPIO, ADC 4 | SPI1 CE1 |
-| 18 | 12 | PC6 | GPIO | PCM CLK, PWM0 |
-| 19 | 35 | PB14 | GPIO | SPI1 MISO, PCM FS |
-| 20 | 38 | PC3 | GPIO, ADC 6 | SPI1 MOSI, PCM DIN |
-| 21 | 40 | PB10 | GPIO | SPI1 SCLK, PCM DOUT |
+| 16 | 36 | PB1 | GPIO, ADC 2, SPI1 CE2 | SPI1 CE2 |
+| 17 | 11 | PC1 | GPIO, ADC 4, SPI1 CE1 | SPI1 CE1 |
+| 18 | 12 | PC6 | GPIO, SPI1 CE0 | SPI1 CE0, PCM CLK, PWM0 |
+| 19 | 35 | PB14 | GPIO, SPI1 MISO | SPI1 MISO, PCM FS |
+| 20 | 38 | PC3 | GPIO, ADC 6, SPI1 MOSI | SPI1 MOSI, PCM DIN |
+| 21 | 40 | PB10 | GPIO, SPI1 SCLK | SPI1 SCLK, PCM DOUT |
 | 22 | 15 | PC0 | GPIO, ADC 3 | |
 | 23 | 16 | PC4 | GPIO, ADC 7 | |
 | 24 | 18 | PB5 | GPIO | |
@@ -105,11 +105,17 @@ The same data sorted by GPIO:
 ### Not available on the header
 
 Compared with a Raspberry Pi, the Limeboard I/O firmware does not provide:
-hardware PWM, the second SPI bus (GPIO16-21), PCM/I2S audio, GPCLK, and the
-HAT ID EEPROM bus on GPIO0/1 (they are plain GPIOs here). The Linux `dln2`
-driver supports one I2C bus, one SPI bus and up to 32 GPIO lines. The SPI bus
-is `/dev/spidev0.0` (CE0) and `/dev/spidev0.1` (CE1); see the
-[SPI example](examples/spi/README.md).
+hardware PWM, PCM/I2S audio, GPCLK, and more than one UART (see
+[One UART](README.md#one-uart)). The HAT ID EEPROM is not read at boot: GPIO0/1
+are a plain second I2C bus here.
+
+The buses, as on a Pi with i2c0, spi0 and spi1 enabled:
+- I2C1 on GPIO2/3 and I2C0 on GPIO0/1;
+- SPI0 (`/dev/spidev0.0`, `0.1`) on GPIO9-11, chip selects GPIO8/7;
+- SPI1 (`/dev/spidev1.0`, `1.1`, `1.2`) on GPIO19-21, chip selects GPIO18/17/16.
+
+See the [SPI example](examples/spi/README.md). The second buses need a kernel
+whose `dln2` driver adds a bus for each port.
 
 ## Onboard signals of the STM32
 

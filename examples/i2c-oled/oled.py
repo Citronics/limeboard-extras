@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""oled.py [address]: system status on an SSD1306 128x64 I2C OLED
-(default address 0x3C) wired to the Limeboard header's I2C pins.
+"""oled.py [address] [port]: system status on an SSD1306 128x64 I2C OLED
+(default address 0x3C) wired to the Limeboard header's I2C pins: port 0 is
+GPIO2/3 (pins 3 and 5, the default), port 1 GPIO0/1 (pins 27 and 28).
 
 Needs luma.oled (pip install luma.oled) and smbus2.
 """
@@ -16,15 +17,20 @@ from luma.oled.device import ssd1306
 from smbus2 import SMBus
 
 ADDRESS = int(sys.argv[1], 16) if len(sys.argv) > 1 else 0x3C
+PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 
 
-def find_bus(name="dln2-i2c"):
-    """Return the number N of the Limeboard header's /dev/i2c-N."""
+def find_bus(port):
+    """Return N of /dev/i2c-N for the Limeboard's I2C port.
+
+    Its adapter is named "dln2-i2c-<usb device>-<port>".
+    """
     for path in glob.glob("/sys/bus/i2c/devices/i2c-*"):
         with open(path + "/name") as f:
-            if f.read().startswith(name):
-                return int(os.path.basename(path)[4:])
-    raise SystemExit("no 'dln2-i2c' bus: is the Limeboard I/O firmware running?")
+            name = f.read().strip()
+        if name.startswith("dln2-i2c") and name.endswith(f"-{port}"):
+            return int(os.path.basename(path)[4:])
+    raise SystemExit(f"no Limeboard I2C port {port}: is the Limeboard I/O firmware running?")
 
 
 def cpu_temp():
@@ -41,7 +47,7 @@ def cpu_temp():
 # The bus is opened with smbus2 so that luma sends 32-byte SMBus block writes.
 # luma's default (i2c(port=N)) writes the whole 1 KiB frame in one message,
 # which the Limeboard's I2C adapter (256 bytes per message) rejects.
-device = ssd1306(i2c(bus=SMBus(find_bus()), address=ADDRESS))
+device = ssd1306(i2c(bus=SMBus(find_bus(PORT)), address=ADDRESS))
 
 while True:
     load = os.getloadavg()[0]
