@@ -16,6 +16,32 @@ control. The firmware does not expose PWM, so the LED cannot be dimmed.
 No wiring is needed. If the Home Assistant agent is running, stop it first:
 it uses the LED. See [the main page](../../README.md#the-home-assistant-agent-and-the-onboard-led).
 
+## With gpiozero
+
+[`rgb_led_gpiozero.py`](rgb_led_gpiozero.py) cycles through the colours.
+Pressing the user button stops it:
+
+```sh
+GPIOZERO_PIN_FACTORY=limeboard python3 rgb_led_gpiozero.py
+```
+
+The essential part, the same code as for an RGB LED on a Raspberry Pi:
+
+```python
+from time import sleep
+from gpiozero import RGBLED
+
+led = RGBLED("LED_R", "LED_G", "LED_B", pwm=False)
+led.color = (1, 0, 1)    # magenta: red and blue on
+sleep(2)
+led.blink()              # white, on and off every second, in the background
+sleep(5)
+led.off()
+```
+
+`pwm=False` is needed: each channel is on or off, so `color` takes 0 or 1
+per channel. See [gpiozero](../../README.md#gpiozero) for the pin factory.
+
 ## From the shell
 
 ```sh
@@ -42,7 +68,7 @@ To blink red at 1 Hz until Ctrl-C:
 gpioset -c $chip -t 500ms,500ms 28=1
 ```
 
-## From Python
+## From Python with libgpiod
 
 [`rgb_led.py`](rgb_led.py) cycles through the 8 colours with the libgpiod
 v2 Python bindings:
@@ -88,7 +114,16 @@ afterwards. Unexport them before using libgpiod:
 
 ## The user button
 
-Line 31 is the board's user button, an input:
+Line 31 is the board's user button, an input. With gpiozero:
+
+```python
+from gpiozero import Button
+
+button = Button("BUTTON", pull_up=None, active_state=True)
+button.wait_for_press()
+```
+
+With the libgpiod tools:
 
 ```sh
 gpioget -c $chip 31                      # current state

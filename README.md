@@ -4,7 +4,7 @@ The Limeboard is a Citronics carrier board for the Fairphone 2 and 3. Its
 STM32 microcontroller runs the **Limeboard I/O firmware**, which turns the
 board's 40-pin header into ordinary Linux devices, numbered like a
 Raspberry Pi's. Programs talk to them with the same tools and libraries as
-on a Pi: libgpiod, i2c-tools, smbus2, spidev, luma.oled.
+on a Pi: gpiozero, libgpiod, i2c-tools, smbus2, spidev, luma.oled.
 
 This guide covers using the header with that firmware installed. For
 building or flashing the firmware itself, see the `limeboard-firmware`
@@ -14,6 +14,7 @@ repository.
 - [Header pinout](#header-pinout) (complete version: [PINOUT.md](PINOUT.md))
 - [Software to install](#software-to-install)
 - [Finding the devices](#finding-the-devices)
+- [gpiozero](#gpiozero)
 - [Differences from a Raspberry Pi](#differences-from-a-raspberry-pi)
 - Examples:
   1. [Onboard RGB LED](examples/onboard-led/README.md)
@@ -85,7 +86,11 @@ only with the board's mode switch S3 in `DFLT`.
 
 ## Software to install
 
-**Debian and Ubuntu images:**
+**Lime images** (Citronics Debian, Ubuntu and Buildroot images for the
+Lime carrier) already include gpiozero 2.0.1 with the Limeboard pin factory
+(see [gpiozero](#gpiozero)), lgpio, psutil and dfu-util.
+
+**Debian and Ubuntu images**, for the other examples:
 
 ```sh
 sudo apt install gpiod python3-libgpiod i2c-tools python3-smbus2 python3-pil python3-venv
@@ -104,8 +109,8 @@ python3 -m venv --system-site-packages ~/limeboard-venv
 ~/limeboard-venv/bin/pip install luma.oled
 ```
 
-**Buildroot images:** these include `i2c-tools` and the Python 3 standard
-library. The examples also have a variant that needs only `/sys/class/gpio`.
+**Buildroot images:** these include `i2c-tools`, Python 3 and gpiozero. The
+LED examples also have a variant that needs only `/sys/class/gpio`.
 
 The examples access `/dev/gpiochip*` and `/dev/i2c-*`. Run them as root
 (with `sudo`), or give your user access to those device files.
@@ -141,16 +146,58 @@ def find_i2c_bus(name="dln2-i2c"):
                 return int(os.path.basename(path)[4:])
 ```
 
+## gpiozero
+
+[gpiozero](https://gpiozero.readthedocs.io/), the usual GPIO library of
+Raspberry Pi tutorials, works on the Limeboard through the **`limeboard` pin
+factory**. A pin factory is gpiozero's back end. The Limeboard one is
+gpiozero's lgpio factory, the default on a Raspberry Pi 5, opened on the
+firmware's `dln2` GPIO chip. Select it with an environment variable, and Pi
+code runs unchanged:
+
+```sh
+GPIOZERO_PIN_FACTORY=limeboard python3 my_script.py
+GPIOZERO_PIN_FACTORY=limeboard pinout      # prints the Limeboard header
+```
+
+To make it the default for your shell, add
+`export GPIOZERO_PIN_FACTORY=limeboard` to `~/.profile`.
+
+Pins take the same names as on a Pi: `LED(17)`, `LED("GPIO17")`,
+`LED("BOARD11")`. The onboard RGB LED and the user button are `LED_R`,
+`LED_G`, `LED_B` and `BUTTON`:
+
+```python
+from gpiozero import RGBLED, Button
+
+led = RGBLED("LED_R", "LED_G", "LED_B", pwm=False)
+button = Button("BUTTON", pull_up=None, active_state=True)
+button.when_pressed = lambda: led.toggle()
+```
+
+What to keep in mind:
+- **Use `pwm=False`** for LEDs, and do not use `PWMLED`. gpiozero would
+  generate PWM in software over USB, which flickers.
+- **Use `pull_up=None` with `active_state`** for buttons, and wire the
+  pull resistor yourself. The firmware does not provide pull-up or
+  pull-down resistors.
+- **gpiozero's SPI devices** (MCP3008 and the like) are not tested on the
+  Limeboard. For analog inputs, use the board's own ADC.
+- The factory lives in `limeboard_gpiozero.py`. In Python, without the
+  environment variable:
+  `Device.pin_factory = limeboard_gpiozero.LimeboardFactory()`.
+
 ## Differences from a Raspberry Pi
 
 - **No hardware PWM.** A GPIO is either on or off. Every change travels
   over USB and takes about a millisecond, so software PWM flickers. Fading
   an LED or driving a servo needs an external PWM chip, such as a PCA9685
   on the I2C bus.
-- **Pi-only libraries.** `RPi.GPIO`, `pigpio` and gpiozero's default pin
+- **Pi-only libraries.** `RPi.GPIO`, `pigpio` and gpiozero's own pin
   factories access the Raspberry Pi's SoC directly or check for a Pi board,
-  so they do not work here. Use libgpiod: the `gpiod` Python module and the
-  `gpio*` tools work on any Linux board, including a Raspberry Pi 5.
+  so they do not work here. Use gpiozero with the
+  [`limeboard` pin factory](#gpiozero), or libgpiod: the `gpiod` Python
+  module and the `gpio*` tools work on any Linux board.
 - **I2C messages are limited to 256 bytes.** Most drivers send small
   messages and are not affected. A library that writes a whole frame buffer
   in one message must split it; see the [OLED example](examples/i2c-oled/README.md).
@@ -163,23 +210,15 @@ def find_i2c_bus(name="dln2-i2c"):
 
 On images that include `limeboard-ha`, the Home Assistant agent uses the
 onboard LED and button (lines 28-31). A line in use by one program cannot be
-requested by another, and the tools report `Device or resource busy`. To use
-the LED from your own programs, stop the agent first:
+requested by another, and the tools report `Device or resource busy`.
+Control the LED from Home Assistant, or stop the agent before you use it
+from your own programs:
 
 ```sh
 sudo systemctl stop limeboard-ha            # Debian, Ubuntu
 /etc/init.d/S95limeboard-ha stop            # Buildroot
 ```
 
-The agent exports the lines through `/sys/class/gpio`, and the exports
-remain after the agent stops. Release them so that libgpiod can request the
-lines:
-
-```sh
-for f in /sys/class/gpio/gpiochip*; do
-	[ "$(cat $f/label)" = dln2 ] && base=$(cat $f/base)
-done
-for line in 28 29 30 31; do
-	[ -d /sys/class/gpio/gpio$((base + line)) ] && echo $((base + line)) > /sys/class/gpio/unexport
-done
-```
+Stopping the agent releases the lines. The header's GPIO0-27 are never
+used by the agent. The agent itself is built on gpiozero, psutil and
+paho-mqtt; its README in the `limeboard-ha` package describes it.

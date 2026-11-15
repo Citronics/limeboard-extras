@@ -23,6 +23,28 @@ Any of GPIO0 to GPIO27 works the same way. Pass its BCM number to the
 scripts below, and see [PINOUT.md](../../PINOUT.md) for its
 pin.
 
+## With gpiozero
+
+This is the first example of most Raspberry Pi tutorials, unchanged.
+[`blink_gpiozero.py`](blink_gpiozero.py):
+
+```python
+from signal import pause
+from gpiozero import LED
+
+led = LED(17)
+led.blink(on_time=0.5, off_time=0.5)
+pause()
+```
+
+```sh
+GPIOZERO_PIN_FACTORY=limeboard python3 blink_gpiozero.py        # GPIO17
+GPIOZERO_PIN_FACTORY=limeboard python3 blink_gpiozero.py 27     # GPIO27
+```
+
+See [gpiozero](../../README.md#gpiozero) for the pin factory. Use `LED`,
+not `PWMLED`: the Limeboard has no PWM, and software PWM over USB flickers.
+
 ## From the shell
 
 ```sh
@@ -43,7 +65,7 @@ sudo ./blink.sh 27     # GPIO27, header pin 13
 It runs `gpioset -t 500ms,500ms 17=1`, which repeats 500 ms on and 500 ms
 off.
 
-## From Python
+## From Python with libgpiod
 
 [`blink.py`](blink.py) does the same with the libgpiod v2 Python bindings:
 
@@ -82,7 +104,10 @@ gpioget -c $chip 27                 # 1 while pressed
 gpiomon -c $chip -e both 27         # an event on each press and release
 ```
 
-In Python, request the line with
+With gpiozero, `Button(27, pull_up=None, active_state=True)` (the resistor
+on the board does the pulling) and `button.when_pressed = ...`.
+
+With the libgpiod Python module, request the line with
 `gpiod.LineSettings(direction=Direction.INPUT)` and read it with
 `request.get_value(27)`.
 
