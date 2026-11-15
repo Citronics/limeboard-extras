@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "limeboard-compat"
+version = "1.0"
+description = "Raspberry Pi GPIO libraries (gpiozero, RPi.GPIO, Adafruit Blinka) on the Citronics Limeboard"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+rpi-gpio = ["rpi-lgpio"]
+blinka = ["adafruit-blinka>=10"]
+
+[tool.setuptools]
+py-modules = ["limeboard_compat"]
+packages = ["limeboard_blinka", "limeboard_blinka.microcontroller"]
