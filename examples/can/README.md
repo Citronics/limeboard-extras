@@ -6,9 +6,10 @@ the kernel's own drivers (`mcp251x`, `mcp251xfd`) run them, and Linux sees an
 ordinary CAN interface, `can0`, for `ip`, `candump` and `cansend`, as on a
 Pi.
 
-Tested with a Waveshare RS485 CAN HAT (rev 2.1, MCP2515, 12 MHz crystal) in
-the controller's loopback mode: frames sent and received with no errors, at
-about 330 frames per second.
+Tested with a Waveshare RS485 CAN HAT (rev 2.1, MCP2515, 12 MHz crystal) on
+a 500 kbit/s bus with a Waveshare USB-CAN-A on a PC: standard and extended
+frames in both directions, no errors. Sending sustained about 330 frames per
+second; receiving, 250 frames per second arrived complete.
 
 ## What it needs
 
@@ -78,8 +79,9 @@ In Python, `socket.AF_CAN` or the `python-can` library work as on a Pi.
 ## Limits
 
 - **Throughput.** Every frame means an interrupt and several SPI transfers
-  over USB, about a millisecond each. The MCP2515 sustains about 330 frames
-  per second, while a busy 500 kbit/s bus can carry 4000. Fine for tests,
+  over USB, about a millisecond each. The MCP2515 sends about 330 frames per
+  second and receives at least 250 complete, while a busy 500 kbit/s bus can
+  carry 4000. Fine for tests,
   diagnostics and lightly loaded buses; a busy bus loses frames, as the
   MCP2515 holds only two received frames.
 - **Interrupt latency** is about a millisecond.

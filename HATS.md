@@ -151,7 +151,7 @@ Turn on the bus the HAT uses, install its library, run it.
 | I2C GPIO expanders: MCP23017, PCF8574 | from Python as is, or the kernel driver with `new_device` (without interrupts) |
 | 1-Wire through an I2C bridge (DS2482) | `new_device` with the kernel driver `ds2482` |
 | SPI chips with a kernel driver (MCP3008 as IIO, …) | a `spi0_cs0=mcp3008` line in `config.txt` instead of `dtoverlay=`; the Lime kernels do not build these drivers yet |
-| CAN HATs: MCP2515 (PiCAN2, Waveshare RS485 CAN HAT ✔), MCP2518FD (Waveshare 2-CH CAN FD HAT) | their usual `dtoverlay=mcp2515-can0,…` or `dtoverlay=mcp251xfd,…` line in `config.txt`, a kernel with CAN and firmware 1.3; about 330 frames per second ([CAN example](examples/can/README.md)) |
+| CAN HATs: MCP2515 (PiCAN2, Waveshare RS485 CAN HAT ✔), MCP2518FD (Waveshare 2-CH CAN FD HAT) | their usual `dtoverlay=mcp2515-can0,…` or `dtoverlay=mcp251xfd,…` line in `config.txt`, a kernel with CAN and firmware 1.3; about 250-330 frames per second ([CAN example](examples/can/README.md)) |
 | Software that opens `/dev/ttyAMA0` | give it `/dev/serial0` |
 
 ### Partly
