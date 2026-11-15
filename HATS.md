@@ -9,7 +9,7 @@ In short:
 
 | | |
 |---|---|
-| **Works** | HATs that use only GPIO, I2C or the serial port, with software that drives the chips itself: relays, buttons, LEDs, I2C sensors, I2C ADCs, PCA9685 PWM and servo boards, I2C OLED displays, real-time clocks, GPS data |
+| **Works** | HATs that use only GPIO, I2C or the serial port, with their usual gpiozero, RPi.GPIO or Blinka libraries: relays, buttons, LEDs, I2C sensors, I2C ADCs, PCA9685 PWM and servo boards, I2C OLED displays, real-time clocks, GPS data |
 | **Not yet** | SPI HATs: the Limeboard has no `/dev/spidev` yet |
 | **No** | audio (I2S), displays driven by kernel drivers or DPI, HATs that need the Pi's PWM or microsecond timing, HATs whose kernel driver needs a device tree overlay |
 
@@ -72,19 +72,23 @@ transfers, so roughly half a second.
 
 ### Software that expects a Pi
 
-Many HAT libraries check that they run on a Raspberry Pi, or import
-`RPi.GPIO`, which only works on a Pi. On the Limeboard:
+Most HAT libraries are written for a Raspberry Pi: they import `RPi.GPIO`,
+use gpiozero, or use Adafruit Blinka. On the Limeboard, the
+[`limeboard-compat`](limeboard-compat/README.md) package, installed on Lime
+images, makes all three work unchanged:
 
-- **gpiozero** works with the [`limeboard` pin factory](README.md#gpiozero).
-  Libraries built on gpiozero work.
-- **RPi.GPIO**: Ubuntu's `python3-rpi-lgpio` provides the same module on top
-  of lgpio. Its `RPI_LGPIO_CHIP` setting should point it at the Limeboard's
-  GPIO chip. This is not tested.
-- **Adafruit Blinka** (Adafruit's CircuitPython libraries on Linux) detects
-  the board and does not know the Limeboard. Use a library built on `smbus2`
-  for the same chip, or talk to it directly.
-- **pigpio** and **wiringPi** access the Pi's processor directly and do not
-  work.
+- **gpiozero**: the `limeboard` pin factory is selected automatically.
+- **RPi.GPIO**: provided by rpi-lgpio (RPi.GPIO on lgpio), pointed at the
+  Limeboard's GPIO chip.
+- **Adafruit Blinka**: `board` is the Limeboard's, with the Raspberry Pi pin
+  names. Install Blinka with pip; it is not part of the images.
+
+The HAT's library therefore usually runs as is, within the limits of this
+page. For example, there is no PWM, and I2C messages are at most 256 bytes.
+Adafruit's SSD1306 OLED driver, for one, needs `page_addressing=True`.
+
+**pigpio** and **wiringPi** access the Pi's processor directly and do not
+work.
 
 ## HAT by HAT
 
@@ -92,7 +96,7 @@ Many HAT libraries check that they run on a Raspberry Pi, or import
 
 | HAT | Uses | Notes |
 |---|---|---|
-| Relay HATs, LED and button HATs, Traffic HAT | GPIO | gpiozero. RPi.GPIO libraries need the shim above |
+| Relay HATs, LED and button HATs, Traffic HAT | GPIO | their gpiozero, RPi.GPIO or Blinka libraries |
 | Active buzzers (on/off) | GPIO | passive buzzers need PWM, see below |
 | I2C sensors: BME280, BME680, BMP280, SHT31, LTR559, IMUs | I2C | `smbus2`-based libraries |
 | I2C ADC: ADS1115, ADS1015 | I2C | the board also has its own 8-channel ADC |
@@ -146,5 +150,3 @@ will work, slowly:
    the user-space SPI HATs above.
 2. **PWM in the firmware** on a few pins, for fans, servos and LED dimming.
    Linux's `dln2` driver has no PWM, so this needs a new way to reach it.
-3. **RPi.GPIO on lgpio** (`rpi-lgpio`), set up for the Limeboard's chip, so
-   libraries written for RPi.GPIO run unchanged.

@@ -25,6 +25,8 @@ repository.
   4. [The phone's motion sensors](examples/phone-sensors/README.md)
   5. [Your own devices in Home Assistant](examples/home-assistant/README.md)
 - Reusable code:
+  - [`limeboard-compat`](limeboard-compat/README.md): gpiozero, RPi.GPIO and
+    Adafruit Blinka on the Limeboard, without setup
   - [`limeboard-gpiozero`](limeboard-gpiozero/README.md): the gpiozero pin
     factory, as a package for `pip install`
   - [`phone_sensors.py`](examples/phone-sensors/phone_sensors.py): reads
@@ -97,7 +99,9 @@ only with the board's mode switch S3 in `DFLT`.
 
 **Lime images** (Citronics Debian, Ubuntu and Buildroot images for the
 Lime carrier) already include gpiozero 2.0.1 with the Limeboard pin factory
-(see [gpiozero](#gpiozero)), lgpio, psutil and dfu-util.
+(see [gpiozero](#gpiozero)), RPi.GPIO (rpi-lgpio) and the Blinka board
+definition ([limeboard-compat](limeboard-compat/README.md)), lgpio, psutil
+and dfu-util.
 
 **Debian and Ubuntu images**, for the other examples:
 
@@ -159,7 +163,8 @@ def find_i2c_bus(name="dln2-i2c"):
 
 [gpiozero](https://gpiozero.readthedocs.io/), the usual GPIO library of
 Raspberry Pi tutorials, works on the Limeboard through the **`limeboard` pin
-factory**. A pin factory is gpiozero's back end. The Limeboard one is
+factory**. RPi.GPIO and Adafruit Blinka work too: see
+[limeboard-compat](limeboard-compat/README.md). A pin factory is gpiozero's back end. The Limeboard one is
 gpiozero's lgpio factory, the default on a Raspberry Pi 5, opened on the
 firmware's `dln2` GPIO chip. Select it with an environment variable, and Pi
 code runs unchanged:
@@ -169,8 +174,8 @@ GPIOZERO_PIN_FACTORY=limeboard python3 my_script.py
 GPIOZERO_PIN_FACTORY=limeboard pinout      # prints the Limeboard header
 ```
 
-To make it the default for your shell, add
-`export GPIOZERO_PIN_FACTORY=limeboard` to `~/.profile`.
+On Lime images, [limeboard-compat](limeboard-compat/README.md) selects it
+for every Python program, so the environment variable is not needed there.
 
 Pins take the same names as on a Pi: `LED(17)`, `LED("GPIO17")`,
 `LED("BOARD11")`. The onboard RGB LED and the user button are `LED_R`,
@@ -205,11 +210,10 @@ What to keep in mind:
   over USB and takes about a millisecond, so software PWM flickers. Fading
   an LED or driving a servo needs an external PWM chip, such as a PCA9685
   on the I2C bus.
-- **Pi-only libraries.** `RPi.GPIO`, `pigpio` and gpiozero's own pin
-  factories access the Raspberry Pi's SoC directly or check for a Pi board,
-  so they do not work here. Use gpiozero with the
-  [`limeboard` pin factory](#gpiozero), or libgpiod: the `gpiod` Python
-  module and the `gpio*` tools work on any Linux board.
+- **Raspberry Pi libraries.** gpiozero, RPi.GPIO and Adafruit Blinka work
+  through [limeboard-compat](limeboard-compat/README.md). `pigpio` and
+  wiringPi access the Pi's processor directly and do not work. libgpiod (the
+  `gpiod` Python module and the `gpio*` tools) works on any Linux board.
 - **I2C messages are limited to 256 bytes.** Most drivers send small
   messages and are not affected. A library that writes a whole frame buffer
   in one message must split it; see the [OLED example](examples/i2c-oled/README.md).

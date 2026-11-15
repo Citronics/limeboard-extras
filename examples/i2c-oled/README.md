@@ -83,6 +83,22 @@ with canvas(device) as draw:
     draw.text((10, 20), "Hello Limeboard", fill="white")
 ```
 
+## With Adafruit's CircuitPython driver (Blinka)
+
+[`oled_blinka.py`](oled_blinka.py) uses `adafruit-circuitpython-ssd1306`
+through Blinka. The same limit applies, and the driver has an option for it:
+`page_addressing=True` sends the frame one 128-byte page at a time.
+
+```python
+import board, adafruit_ssd1306
+
+oled = adafruit_ssd1306.SSD1306_I2C(128, 64, board.I2C(), page_addressing=True)
+oled.rect(0, 0, 128, 64, 1)
+oled.show()
+```
+
+Without it, `show()` fails with `OSError: [Errno 95] Operation not supported`.
+
 Other I2C sensors and devices (temperature sensors, IO expanders, PWM
 controllers) use small messages and work with their usual Python or kernel
 drivers. Only drivers that send more than 256 bytes at once need care.

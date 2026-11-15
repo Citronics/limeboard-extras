@@ -45,6 +45,29 @@ GPIOZERO_PIN_FACTORY=limeboard python3 blink_gpiozero.py 27     # GPIO27
 See [gpiozero](../../README.md#gpiozero) for the pin factory. Use `LED`,
 not `PWMLED`: the Limeboard has no PWM, and software PWM over USB flickers.
 
+## With RPi.GPIO
+
+[`blink_rpi_gpio.py`](blink_rpi_gpio.py), the RPi.GPIO version found in
+older tutorials, runs as is:
+
+```sh
+python3 blink_rpi_gpio.py
+```
+
+## With Adafruit Blinka
+
+[`blink_blinka.py`](blink_blinka.py), the CircuitPython way, after
+`pip install adafruit-blinka` (see
+[limeboard-compat](../../limeboard-compat/README.md#adafruit-blinka)):
+
+```python
+import board, digitalio
+
+led = digitalio.DigitalInOut(board.D17)
+led.direction = digitalio.Direction.OUTPUT
+led.value = True
+```
+
 ## From the shell
 
 ```sh
