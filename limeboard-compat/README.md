@@ -110,8 +110,9 @@ These come from the Limeboard, not from the libraries:
   that send a whole frame buffer at once must split it. Adafruit's SSD1306
   driver does with `page_addressing=True`:
   `adafruit_ssd1306.SSD1306_I2C(128, 64, board.I2C(), page_addressing=True)`.
-- **No SPI yet.** `board.SPI()` fails until `/dev/spidev` exists on the
-  Limeboard.
+- **SPI** is `board.SPI()`, on `/dev/spidev0.0`. A library's chip select
+  must be another GPIO than CE0 and CE1, which belong to the bus. SPI is
+  slower than on a Pi: a USB round trip per 256 bytes.
 - **The UART** is the USB serial port `/dev/ttyACM*`: open it with
   `serial.Serial("/dev/ttyACM0", 9600)`, not `busio.UART`.
 - **Blinka's `analogio`** is not mapped. Read the board's ADC from
