@@ -23,12 +23,12 @@ PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 def find_bus(port):
     """Return N of /dev/i2c-N for the Limeboard's I2C port.
 
-    Its adapter is named "dln2-i2c-<usb device>-<port>".
+    Its adapter is named "citronics-dln2-i2c-<usb device>-<port>".
     """
     for path in glob.glob("/sys/bus/i2c/devices/i2c-*"):
         with open(path + "/name") as f:
             name = f.read().strip()
-        if name.startswith("dln2-i2c") and name.endswith(f"-{port}"):
+        if name.startswith("citronics-dln2-i2c") and name.endswith(f"-{port}"):
             return int(os.path.basename(path)[4:])
     raise SystemExit(f"no Limeboard I2C port {port}: is the Limeboard I/O firmware running?")
 

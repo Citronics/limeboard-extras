@@ -10,16 +10,16 @@ import time
 import gpiod
 from gpiod.line import Direction, Value
 
-GPIO = int(sys.argv[1]) if len(sys.argv) > 1 else 17  # BCM number = dln2 line
+GPIO = int(sys.argv[1]) if len(sys.argv) > 1 else 17  # BCM number = citronics-dln2 line
 
 
-def find_chip(label="dln2"):
+def find_chip(label="citronics-dln2"):
     """Return the /dev/gpiochipN path of the Limeboard header's GPIO chip."""
     for path in sorted(glob.glob("/dev/gpiochip*")):
         with gpiod.Chip(path) as chip:
             if chip.get_info().label == label:
                 return path
-    raise SystemExit("no 'dln2' GPIO chip: is the Limeboard I/O firmware running?")
+    raise SystemExit("no 'citronics-dln2' GPIO chip: is the Limeboard I/O firmware running?")
 
 
 with gpiod.request_lines(

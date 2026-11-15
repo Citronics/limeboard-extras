@@ -28,12 +28,6 @@ select's pin until that chip select is used, so SPI1 only takes GPIO16/17 if
 you use its CE1/CE2. For SPI1 with fewer chip selects, use
 `dtoverlay=spi1-1cs` or `spi1-2cs` in the file.
 
-These need a kernel with the Limeboard's dln2 changes (Citronics kernels
-with "spi: dln2: add the devices on the chip selects" and "mfd: dln2: add a
-cell for each I2C and SPI port"): `modinfo -p spi_dln2` lists `spi0_cs0` to
-`spi1_cs3` on those. Older kernels have one SPI controller and no
-`/dev/spidev`.
-
 ## Check the bus: loopback
 
 Turn the bus on first (`sudo limeboard-config enable spi0`, or `spi1`).

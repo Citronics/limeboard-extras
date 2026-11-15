@@ -121,7 +121,7 @@ out.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" vi
 out.append(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
 
 text(HX, 44, "Limeboard 40-pin header", 26, "bold", "middle")
-text(HX, 72, "Limeboard I/O firmware · GPIO numbers = BCM = lines of the Linux GPIO chip \"dln2\"",
+text(HX, 72, "Limeboard I/O firmware · GPIO numbers = BCM = lines of the Linux GPIO chip \"citronics-dln2\"",
      13.5, "normal", "middle", "#555")
 
 # Header body
@@ -193,7 +193,7 @@ ny = oy + 104
 for i, note in enumerate([
     "All signals are 3.3 V logic: never connect 5 V to a GPIO. The header works with switch S3 in DFLT.",
     "I2C and SPI are off until /etc/limeboard/config.txt turns them on (dtparam=i2c_arm=on, dtparam=spi=on...).",
-    "ADC n = in_voltagen_raw of the IIO device \"dln2-adc\" (10-bit, 0-3.3 V). I2C1 also carries the board's",
+    "ADC n = in_voltagen_raw of the IIO device \"citronics-dln2-adc\" (10-bit, 0-3.3 V). I2C1 also carries the board's",
     "power controller at 0x28. No hardware PWM. Pin positions follow the Raspberry Pi layout. Details: PINOUT.md",
 ]):
     text(70, ny + i * 19, note, 12.5, "normal", "start", "#444")

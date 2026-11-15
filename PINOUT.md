@@ -19,10 +19,10 @@ Sources:
 with the tables below.
 
 The header follows the Raspberry Pi layout and BCM numbering. In Linux,
-"Line" is the line number on the GPIO chip `dln2`, which is the same as the
+"Line" is the line number on the GPIO chip `citronics-dln2`, which is the same as the
 BCM number. "Function" lists what the Limeboard I/O firmware provides on
 the pin besides plain GPIO. "ADC" gives the IIO channel
-(`in_voltageN_raw` of the `dln2-adc` device).
+(`in_voltageN_raw` of the `citronics-dln2-adc` device).
 
 | Function | ADC | STM32 | Line | Pin | Pin | Line | STM32 | ADC | Function |
 |---:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:---|
@@ -117,22 +117,21 @@ for their Linux devices). As on a Pi, they are off until
 - SPI0 (`/dev/spidev0.0`, `0.1`) on GPIO9-11, chip selects GPIO8/7;
 - SPI1 (`/dev/spidev1.0`, `1.1`, `1.2`) on GPIO19-21, chip selects GPIO18/17/16.
 
-See the [SPI example](examples/spi/README.md). The second buses need a kernel
-whose `dln2` driver adds a bus for each port.
+See the [SPI example](examples/spi/README.md).
 
 ## Onboard signals of the STM32
 
 These are not on the header. The board has one RGB LED, and each of its three
-colour channels is driven by its own STM32 pin. Lines 28-31 of the `dln2` chip
+colour channels is driven by its own STM32 pin. Lines 28-31 of the `citronics-dln2` chip
 expose the three channels and the button. The firmware keeps the other signals
 away from Linux on purpose.
 
 | Signal | STM32 | Linux | Function |
 |---|:-:|---|---|
-| LED_R | PC11 | `dln2` line 28 | red channel of the RGB LED (1 = on) |
-| LED_G | PC12 | `dln2` line 29 | green channel of the RGB LED (1 = on) |
-| LED_B | PC7 | `dln2` line 30 | blue channel of the RGB LED (1 = on) |
-| BTN | PB2 | `dln2` line 31 | user button (input). Held at power-up: STM32 ROM bootloader (DFU) |
+| LED_R | PC11 | `citronics-dln2` line 28 | red channel of the RGB LED (1 = on) |
+| LED_G | PC12 | `citronics-dln2` line 29 | green channel of the RGB LED (1 = on) |
+| LED_B | PC7 | `citronics-dln2` line 30 | blue channel of the RGB LED (1 = on) |
+| BTN | PB2 | `citronics-dln2` line 31 | user button (input). Held at power-up: STM32 ROM bootloader (DFU) |
 | FP_PWRKEY | PA15 | not exposed | phone's power key |
 | FP_BUT_UP | PC13 | not exposed | phone's volume-up key |
 | FP_BUT_DWN | PC10 | not exposed | phone's volume-down key |
@@ -153,7 +152,7 @@ The STM32 also connects to a 8 MHz crystal.
 
 ### The board's I2C bus
 
-The header's I2C bus (`dln2-i2c`, GPIO2/3) also reaches the board's USB-C
+The header's I2C bus (`citronics-dln2-i2c`, GPIO2/3) also reaches the board's USB-C
 power-delivery controller, an STUSB4500 at address **0x28**. `i2cdetect`
 shows it, and external devices must not use that address. Do not write to
 it: it negotiates the board's power supply.

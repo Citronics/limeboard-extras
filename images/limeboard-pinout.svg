@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="1008" viewBox="0 0 980 1008">
 <rect width="980" height="1008" fill="#ffffff"/>
 <text x="490" y="44" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="26" font-weight="bold" text-anchor="middle" fill="#222">Limeboard 40-pin header</text>
-<text x="490" y="72" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="normal" text-anchor="middle" fill="#555">Limeboard I/O firmware · GPIO numbers = BCM = lines of the Linux GPIO chip "dln2"</text>
+<text x="490" y="72" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="normal" text-anchor="middle" fill="#555">Limeboard I/O firmware · GPIO numbers = BCM = lines of the Linux GPIO chip "citronics-dln2"</text>
 <rect x="454.0" y="97.0" width="72" height="612" rx="6" fill="#1d1f21"/>
 <text x="490" y="89.0" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="end" fill="#555" dx="-21.0">pin 1</text>
 <rect x="465.0" y="108" width="20" height="20" rx="2" fill="#c9a24a"/>
@@ -312,6 +312,6 @@
 <text x="70" y="892" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">One RGB LED with three colour channels; each channel is a GPIO line (1 = on), which gives 8 colours.</text>
 <text x="70" y="922" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">All signals are 3.3 V logic: never connect 5 V to a GPIO. The header works with switch S3 in DFLT.</text>
 <text x="70" y="941" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">I2C and SPI are off until /etc/limeboard/config.txt turns them on (dtparam=i2c_arm=on, dtparam=spi=on...).</text>
-<text x="70" y="960" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">ADC n = in_voltagen_raw of the IIO device "dln2-adc" (10-bit, 0-3.3 V). I2C1 also carries the board's</text>
+<text x="70" y="960" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">ADC n = in_voltagen_raw of the IIO device "citronics-dln2-adc" (10-bit, 0-3.3 V). I2C1 also carries the board's</text>
 <text x="70" y="979" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" text-anchor="start" fill="#444">power controller at 0x28. No hardware PWM. Pin positions follow the Raspberry Pi layout. Details: PINOUT.md</text>
 </svg>

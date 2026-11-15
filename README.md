@@ -38,23 +38,23 @@ repository.
 
 ## What the firmware provides
 
-The STM32 connects to the phone over USB. The kernel's `dln2` drivers turn
-it into these devices:
+The STM32 connects to the phone over USB. The `citronics-dln2` driver of
+Citronics kernels (`modinfo citronics-dln2`) turns it into these devices:
 
 | Linux device | What it is |
 |---|---|
-| GPIO chip `dln2`, lines 0-27 | header GPIO0 to GPIO27 (BCM numbering) |
-| GPIO chip `dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
-| GPIO chip `dln2`, line 31 | onboard user button (input) |
-| I2C bus `dln2-i2c-…-0` (Pi i2c1) | SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), 100 kHz: the usual I2C bus |
-| I2C bus `dln2-i2c-…-1` (Pi i2c0) | SDA GPIO0 (pin 27), SCL GPIO1 (pin 28), 100 kHz ([second I2C bus](examples/i2c-oled/README.md#on-the-second-i2c-bus)) |
+| GPIO chip `citronics-dln2`, lines 0-27 | header GPIO0 to GPIO27 (BCM numbering) |
+| GPIO chip `citronics-dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
+| GPIO chip `citronics-dln2`, line 31 | onboard user button (input) |
+| I2C bus `citronics-dln2-i2c-…-0` (Pi i2c1) | SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), 100 kHz: the usual I2C bus |
+| I2C bus `citronics-dln2-i2c-…-1` (Pi i2c0) | SDA GPIO0 (pin 27), SCL GPIO1 (pin 28), 100 kHz ([second I2C bus](examples/i2c-oled/README.md#on-the-second-i2c-bus)) |
 | SPI 0: `/dev/spidev0.0`, `/dev/spidev0.1` (Pi spi0) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 ([SPI example](examples/spi/README.md)) |
 | SPI 1: `/dev/spidev1.0`, `1.1`, `1.2` (Pi spi1) | MOSI GPIO20, MISO GPIO19, SCLK GPIO21, CE0 GPIO18, CE1 GPIO17, CE2 GPIO16 |
-| IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
+| IIO ADC `citronics-dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
 | `/dev/serial0`, a link to the USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15: [the only UART](#one-uart) |
 
 The GPIO line number is the BCM GPIO number, so GPIO17 is line 17 of the
-`dln2` chip. As on a Raspberry Pi, the I2C and SPI buses are off until you
+`citronics-dln2` chip. As on a Raspberry Pi, the I2C and SPI buses are off until you
 turn them on ([below](#turning-the-buses-on)). A pin is a plain GPIO until a
 function uses it: a bus that is on claims its pins when a program first uses
 it (an SPI chip select on its own first use), the ADC on first use, and the
@@ -80,13 +80,9 @@ The numbers are those with both I2C buses on: Linux numbers the buses in
 the order they appear, so with only i2c0 on it is `/dev/i2c-1`.
 `/dev/i2c-0` is the phone's own I2C controller, so the Limeboard's i2c0 cannot
 be `/dev/i2c-0`. Find a bus by its name instead of its number:
-`i2cdetect -l | grep dln2`. The `-0` or `-1` at the end of the name is the
+`i2cdetect -l | grep citronics-dln2`. The `-0` or `-1` at the end of the name is the
 Limeboard I2C port. GPIO0/1 are a plain I2C bus here: the Limeboard does not
 read HAT EEPROMs.
-
-The second I2C and SPI buses need a kernel whose `dln2` driver adds a bus for
-each port (Citronics kernels with "mfd: dln2: add a cell for each I2C and
-SPI port"); older kernels show only the first of each.
 
 ### One UART
 
@@ -101,8 +97,8 @@ Check that the firmware is running:
 
 ```sh
 lsusb | grep 1209:0001         # the Limeboard I/O firmware
-gpiodetect | grep dln2         # its GPIO chip
-i2cdetect -l | grep dln2       # its I2C buses, once turned on
+gpiodetect | grep citronics-dln2         # its GPIO chip
+i2cdetect -l | grep citronics-dln2       # its I2C buses, once turned on
 ```
 
 ## Turning the buses on
@@ -130,10 +126,10 @@ sudo limeboard-config disable spi1
 limeboard-config show                   # i2c1: on, i2c0: off, spi0: off, ...
 ```
 
-`limeboard-config` writes the settings of the kernel's `dln2` drivers to
-`/etc/modprobe.d/limeboard.conf`; do not edit that file. Lines the Limeboard
-does not support are reported and ignored. The buses need a kernel with the
-Limeboard's dln2 changes: `modinfo -p i2c_dln2` lists `ports` on those.
+`limeboard-config` writes the settings of the `citronics-dln2` driver to
+`/etc/modprobe.d/limeboard.conf`, for the next boot, and applies them at
+once; do not edit that file. Lines the Limeboard does not support are
+reported and ignored.
 
 ## Serial console, firmware and raspi-config
 
@@ -255,8 +251,8 @@ appear, so look them up by name instead of hard-coding `gpiochip4` or
 Shell:
 
 ```sh
-chip=$(gpiodetect | awk '/\[dln2\]/ { print $1 }')     # e.g. gpiochip4
-bus=$(i2cdetect -l | awk '/dln2-i2c/ { sub("i2c-", "", $1); print $1 }')   # e.g. 1
+chip=$(gpiodetect | awk '/\[citronics-dln2\]/ { print $1 }')     # e.g. gpiochip4
+bus=$(i2cdetect -l | awk '/citronics-dln2-i2c/ { sub("i2c-", "", $1); print $1 }')   # e.g. 1
 ```
 
 Python:
@@ -264,13 +260,13 @@ Python:
 ```python
 import glob, os, gpiod
 
-def find_chip(label="dln2"):
+def find_chip(label="citronics-dln2"):
     for path in sorted(glob.glob("/dev/gpiochip*")):
         with gpiod.Chip(path) as chip:
             if chip.get_info().label == label:
                 return path
 
-def find_i2c_bus(name="dln2-i2c"):
+def find_i2c_bus(name="citronics-dln2-i2c"):
     for path in glob.glob("/sys/bus/i2c/devices/i2c-*"):
         with open(path + "/name") as f:
             if f.read().startswith(name):
@@ -284,7 +280,7 @@ Raspberry Pi tutorials, works on the Limeboard through the **`limeboard` pin
 factory**. RPi.GPIO and Adafruit Blinka work too: see
 [limeboard-compat](limeboard-compat/README.md). A pin factory is gpiozero's back end. The Limeboard one is
 gpiozero's lgpio factory, the default on a Raspberry Pi 5, opened on the
-firmware's `dln2` GPIO chip. Select it with an environment variable, and Pi
+firmware's `citronics-dln2` GPIO chip. Select it with an environment variable, and Pi
 code runs unchanged:
 
 ```sh
@@ -346,7 +342,7 @@ What to keep in mind:
 - **One I2C bus and one SPI bus.** The Pi's second SPI bus (GPIO16-21) is
   not available.
 - **ADC.** The header has eight 10-bit analog inputs, which the Pi lacks.
-  They appear in `/sys/bus/iio/devices/iio:deviceN/` (name `dln2-adc`).
+  They appear in `/sys/bus/iio/devices/iio:deviceN/` (name `citronics-dln2-adc`).
 
 ## The Home Assistant agent and the onboard LED
 

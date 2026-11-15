@@ -10,7 +10,7 @@ GPIOZERO_PIN_FACTORY=limeboard pinout
 ```
 
 The board's STM32 must run the Limeboard I/O firmware, which makes the
-header a Linux GPIO chip labelled `dln2`. The factory is gpiozero's lgpio
+header a Linux GPIO chip labelled `citronics-dln2`. The factory is gpiozero's lgpio
 factory (the default on a Raspberry Pi 5) opened on that chip, with the
 Limeboard header's description:
 
@@ -67,6 +67,6 @@ led = LED(17)
 - It finds the chip by its label, because its number can change.
 - It opens the chip itself: gpiozero 2.0.1's `LGPIOFactory` ignores its
   `chip` argument and opens gpiochip0, which on the phone is the SoC's own
-  pins. It refuses any chip not labelled `dln2`.
+  pins. It refuses any chip not labelled `citronics-dln2`.
 - It keeps its own pin cache. gpiozero's local factories share one cache,
   which would hand a new factory the dead pins of a chip that disappeared.

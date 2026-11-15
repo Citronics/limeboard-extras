@@ -1,7 +1,7 @@
 # Example 1: the onboard RGB LED
 
 The Limeboard has an RGB LED driven by the STM32. It appears as three
-lines of the `dln2` GPIO chip:
+lines of the `citronics-dln2` GPIO chip:
 
 | Line | Colour |
 |---|---|
@@ -45,7 +45,7 @@ per channel. See [gpiozero](../../README.md#gpiozero) for the pin factory.
 ## From the shell
 
 ```sh
-chip=$(gpiodetect | awk '/\[dln2\]/ { print $1 }')
+chip=$(gpiodetect | awk '/\[citronics-dln2\]/ { print $1 }')
 
 gpioset -c $chip -t 0 28=1 29=0 30=0    # red
 gpioset -c $chip -t 0 28=1 29=1 30=0    # yellow
@@ -108,7 +108,7 @@ On a system without the libgpiod tools, such as the Buildroot image,
 ```
 
 The sysfs interface numbers lines globally (chip base + line), and the
-script looks up the base of the `dln2` chip. The lines stay exported
+script looks up the base of the `citronics-dln2` chip. The lines stay exported
 afterwards. Unexport them before using libgpiod:
 `echo N > /sys/class/gpio/unexport`.
 

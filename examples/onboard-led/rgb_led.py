@@ -9,7 +9,7 @@ import time
 import gpiod
 from gpiod.line import Direction, Value
 
-RED, GREEN, BLUE = 28, 29, 30  # lines of the "dln2" GPIO chip
+RED, GREEN, BLUE = 28, 29, 30  # lines of the "citronics-dln2" GPIO chip
 
 COLOURS = {
     "red": (1, 0, 0),
@@ -23,13 +23,13 @@ COLOURS = {
 }
 
 
-def find_chip(label="dln2"):
+def find_chip(label="citronics-dln2"):
     """Return the /dev/gpiochipN path of the Limeboard header's GPIO chip."""
     for path in sorted(glob.glob("/dev/gpiochip*")):
         with gpiod.Chip(path) as chip:
             if chip.get_info().label == label:
                 return path
-    raise SystemExit("no 'dln2' GPIO chip: is the Limeboard I/O firmware running?")
+    raise SystemExit("no 'citronics-dln2' GPIO chip: is the Limeboard I/O firmware running?")
 
 
 def set_colour(request, rgb):

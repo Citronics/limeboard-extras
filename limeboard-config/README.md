@@ -20,8 +20,10 @@ console on `/dev/serial0`.
 | `limeboard-serial-console.service` | the systemd service running it (Debian, Ubuntu); Buildroot uses an `/etc/inittab` line |
 | `limeboard-io.version` | `/usr/share/limeboard/limeboard-io.version`, next to the firmware `limeboard-io.bin` built from `limeboard-firmware` |
 
-For the buses, `limeboard-config` writes the parameters of the kernel's
-`i2c_dln2` (`ports`) and `spi_dln2` (`spi<bus>_cs<n>`) modules to
-`/etc/modprobe.d/limeboard.conf`, reloads udev's module settings, and reloads
-the two modules when no program is using them. The firmware update uses
+For the buses, `limeboard-config` writes the options of the `citronics-dln2`
+driver (`i2c_ports`, `spi<bus>_cs<n>`) to `/etc/modprobe.d/limeboard.conf`
+for the next boot, and applies them at once: it sets them in
+`/sys/module/citronics_dln2/parameters/` and binds the I2C and SPI ports
+whose settings changed again, leaving the GPIO chip, the other ports and the
+programs using them alone. The firmware update uses
 `dfu-util`. Lime images (Buildroot, Debian, Ubuntu) install all of these.

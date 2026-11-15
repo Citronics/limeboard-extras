@@ -18,8 +18,8 @@ esac
 # shellcheck disable=SC2086 # split "1 0 0" into $1 $2 $3
 set -- $rgb
 
-chip=$(gpiodetect | awk '/\[dln2\]/ { print $1 }')
-[ -n "$chip" ] || { echo "no dln2 GPIO chip" >&2; exit 1; }
+chip=$(gpiodetect | awk '/\[citronics-dln2\]/ { print $1 }')
+[ -n "$chip" ] || { echo "no citronics-dln2 GPIO chip" >&2; exit 1; }
 
 # -t 0: set the lines and exit. The firmware keeps the output level after
 # the lines are released.

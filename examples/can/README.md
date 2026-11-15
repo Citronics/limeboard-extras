@@ -15,8 +15,8 @@ second; receiving, 250 frames per second arrived complete.
 
 - A kernel with CAN support (`modinfo mcp251x` finds the driver; Lime kernels
   build the CAN core, `can-raw`, `vcan`, `mcp251x` and `mcp251xfd` as
-  modules) and the Limeboard's dln2 changes (the `clock=` and `trigger=`
-  chip select settings).
+  modules) and the `citronics-dln2` driver, which gives the controller its
+  clock and interrupt (the `clock=` and `trigger=` chip select settings).
 - Limeboard I/O firmware 1.3 or later: `limeboard-config firmware` shows the
   version, `sudo limeboard-config firmware update` installs it.
 - `iproute2` (a BusyBox `ip` cannot set a CAN bitrate) and `can-utils`.

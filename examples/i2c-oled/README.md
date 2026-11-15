@@ -29,7 +29,7 @@ See [Turning the buses on](../../README.md#turning-the-buses-on).
 ## Check that the display answers
 
 ```sh
-i2cdetect -l | grep dln2             # e.g. "i2c-1  i2c  dln2-i2c-1-1.5:1.0-0  I2C adapter"
+i2cdetect -l | grep citronics-dln2             # e.g. "i2c-1  i2c  citronics-dln2-i2c-1-1.5:1.0-0  I2C adapter"
 sudo i2cdetect -y -r 1               # use the bus number found above
 ```
 
@@ -68,7 +68,7 @@ pin 27 and SCL to pin 28, keep VCC and GND, then:
 
 ```sh
 sudo limeboard-config enable i2c0     # dtoverlay=i2c0
-i2cdetect -l | grep dln2              # two buses: names end in -0 (GPIO2/3) and -1 (GPIO0/1)
+i2cdetect -l | grep citronics-dln2              # two buses: names end in -0 (GPIO2/3) and -1 (GPIO0/1)
 sudo i2cdetect -y -r 2                # the -1 bus: /dev/i2c-2 on a Fairphone 2
 sudo ~/limeboard-venv/bin/python oled.py 3c 1
 ```
@@ -76,7 +76,6 @@ sudo ~/limeboard-venv/bin/python oled.py 3c 1
 `oled.py`'s second argument is the Limeboard I2C port: 0 for GPIO2/3, 1 for
 GPIO0/1. With Blinka, the second bus is `busio.I2C(board.SCL0, board.SDA0)`.
 
-The second bus needs a kernel whose `dln2` driver adds a bus for each port.
 Its pins stay plain GPIOs until something uses the bus. Unlike on GPIO2/3, no
 other device of the board sits on it.
 

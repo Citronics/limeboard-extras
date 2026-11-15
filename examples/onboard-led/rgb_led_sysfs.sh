@@ -4,9 +4,9 @@
 set -e
 
 for chip in /sys/class/gpio/gpiochip*; do
-	[ "$(cat "$chip/label")" = dln2 ] && base=$(cat "$chip/base")
+	[ "$(cat "$chip/label")" = citronics-dln2 ] && base=$(cat "$chip/base")
 done
-[ -n "$base" ] || { echo "no dln2 GPIO chip" >&2; exit 1; }
+[ -n "$base" ] || { echo "no citronics-dln2 GPIO chip" >&2; exit 1; }
 
 line=28
 for value in "$1" "$2" "$3"; do

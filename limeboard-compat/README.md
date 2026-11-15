@@ -123,7 +123,7 @@ These come from the Limeboard, not from the libraries:
 - **The UART** is the USB serial port `/dev/ttyACM*`: open it with
   `serial.Serial("/dev/ttyACM0", 9600)`, not `busio.UART`.
 - **Blinka's `analogio`** is not mapped. Read the board's ADC from
-  `/sys/bus/iio/devices/` (device `dln2-adc`).
+  `/sys/bus/iio/devices/` (device `citronics-dln2-adc`).
 - **Blinka keeps a pin** until the program exits, even after `deinit()`. A
   later program, or gpiozero or RPi.GPIO in the same program, gets "GPIO busy"
   on that pin until then.

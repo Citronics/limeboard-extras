@@ -33,8 +33,8 @@ the board's 3.3 V and 5 V pins can supply is not documented.
 
 On a Raspberry Pi, the header pins belong to the main processor. On the
 Limeboard, they belong to an STM32 microcontroller, which reaches the phone
-over USB. Linux's `dln2` drivers make it look like a Pi header, with these
-differences:
+over USB. The `citronics-dln2` driver of Citronics kernels makes it look like
+a Pi header, with these differences:
 
 | | Raspberry Pi | Limeboard |
 |---|---|---|
@@ -67,16 +67,13 @@ Two things still work:
   echo ds3231 0x68 | sudo tee /sys/bus/i2c/devices/i2c-1/new_device
   ```
 
-  (`i2c-1` is the Limeboard's bus here; `i2cdetect -l | grep dln2` shows its
+  (`i2c-1` is the Limeboard's bus here; `i2cdetect -l | grep citronics-dln2` shows its
   number.)
 
 ### SPI
 
 The SPI buses work like a Pi's spi0 and spi1: `/dev/spidev0.0` and `0.1`,
-`/dev/spidev1.0`, `1.1` and `1.2`, for py-spidev, gpiozero and Blinka. This
-needs a kernel with the Limeboard's dln2 changes (`modinfo -p spi_dln2` lists
-`spi0_cs0` to `spi1_cs3`). Older kernels have one SPI controller and no
-`/dev/spidev`.
+`/dev/spidev1.0`, `1.1` and `1.2`, for py-spidev, gpiozero and Blinka.
 
 As on a Pi, the buses are off until `/etc/limeboard/config.txt` turns them
 on (`dtparam=spi=on`, `dtoverlay=spi1-3cs`). A Pi puts a kernel driver on a
@@ -123,7 +120,7 @@ work.
 ✔ marks what has been run on a Limeboard. The rest follows from the
 interfaces and libraries the HAT uses. A library that looks for the
 Raspberry Pi's own GPIO chip by name, instead of going through RPi.GPIO,
-gpiozero or Blinka, needs to be pointed at the Limeboard's `dln2` chip.
+gpiozero or Blinka, needs to be pointed at the Limeboard's `citronics-dln2` chip.
 
 ### Out of the box
 
@@ -180,4 +177,4 @@ Turn on the bus the HAT uses, install its library, run it.
 ## What would make more HATs work
 
 1. **PWM in the firmware** on a few pins, for fans, servos and LED dimming.
-   Linux's `dln2` driver has no PWM, so this needs a new way to reach it.
+   The `citronics-dln2` driver has no PWM either: both need it.

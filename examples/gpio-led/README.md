@@ -71,7 +71,7 @@ led.value = True
 ## From the shell
 
 ```sh
-chip=$(gpiodetect | awk '/\[dln2\]/ { print $1 }')
+chip=$(gpiodetect | awk '/\[citronics-dln2\]/ { print $1 }')
 
 gpioset -c $chip -t 0 17=1     # LED on
 gpioset -c $chip -t 0 17=0     # LED off
