@@ -27,6 +27,7 @@ repository.
   4. [The phone's motion sensors](examples/phone-sensors/README.md)
   5. [Your own devices in Home Assistant](examples/home-assistant/README.md)
   6. [SPI](examples/spi/README.md)
+  7. [CAN with an SPI CAN HAT](examples/can/README.md)
 - Reusable code:
   - [`limeboard-compat`](limeboard-compat/README.md): gpiozero, RPi.GPIO and
     Adafruit Blinka on the Limeboard, without setup

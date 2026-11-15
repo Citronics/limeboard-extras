@@ -140,7 +140,7 @@ Turn on the bus the HAT uses, install its library, run it.
 | Waveshare e-paper displays | spi0 + GPIO | their RPi.GPIO/gpiozero and spidev drivers; refreshes are slow anyway |
 | LoRa HATs (SX127x, SX126x) | spi0 + GPIO | when their library drives SPI and GPIO from user space |
 | GPS HATs: position data | UART | `gpsd /dev/serial0` |
-| RS-485 / serial HATs | UART | `/dev/serial0`. Direction control on a GPIO is slow (about 1 ms) |
+| RS-485 / serial HATs, the RS485 side of the RS485 CAN HAT | UART | `/dev/serial0`. Automatic direction switching works as is; direction control on a GPIO is slow (about 1 ms) |
 
 ### One extra step
 
@@ -151,6 +151,7 @@ Turn on the bus the HAT uses, install its library, run it.
 | I2C GPIO expanders: MCP23017, PCF8574 | from Python as is, or the kernel driver with `new_device` (without interrupts) |
 | 1-Wire through an I2C bridge (DS2482) | `new_device` with the kernel driver `ds2482` |
 | SPI chips with a kernel driver (MCP3008 as IIO, …) | a `spi0_cs0=mcp3008` line in `config.txt` instead of `dtoverlay=`; the Lime kernels do not build these drivers yet |
+| CAN HATs: MCP2515 (PiCAN2, Waveshare RS485 CAN HAT ✔), MCP2518FD (Waveshare 2-CH CAN FD HAT) | their usual `dtoverlay=mcp2515-can0,…` or `dtoverlay=mcp251xfd,…` line in `config.txt`, a kernel with CAN and firmware 1.3; about 330 frames per second ([CAN example](examples/can/README.md)) |
 | Software that opens `/dev/ttyAMA0` | give it `/dev/serial0` |
 
 ### Partly
@@ -170,7 +171,6 @@ Turn on the bus the HAT uses, install its library, run it.
 | Audio: HiFiBerry, IQaudio, pHAT DAC, ReSpeaker microphones | need I2S, which the header does not carry. Use a USB sound card instead |
 | SPI displays with kernel drivers: PiTFT, Waveshare 3.5" LCD | need a kernel driver loaded by a device tree overlay |
 | DPI displays | the Pi's parallel display signals are not on the header |
-| CAN HATs (MCP2515) | the kernel CAN driver needs its oscillator clock from the device tree, and the Lime kernels do not build it |
 | Addressable LEDs from the Pi: Unicorn HAT, NeoPixel HATs | driven by the Pi's PWM, PCM or SPI timing |
 | Servos or motors straight on a GPIO, passive buzzers, dimmable LEDs | need PWM. Use a PCA9685 board |
 | DHT11/DHT22, HC-SR04, IR receivers and transmitters, 1-Wire on a GPIO | need microsecond timing; USB adds about 1 ms per operation |
