@@ -14,6 +14,7 @@ repository.
 - [What the firmware provides](#what-the-firmware-provides)
 - [Header pinout](#header-pinout) (complete version: [PINOUT.md](PINOUT.md))
 - [Turning the buses on](#turning-the-buses-on)
+- [Serial console, firmware and raspi-config](#serial-console-firmware-and-raspi-config)
 - [Software to install](#software-to-install)
 - [Finding the devices](#finding-the-devices)
 - [gpiozero](#gpiozero)
@@ -132,6 +133,49 @@ limeboard-config show                   # i2c1: on, i2c0: off, spi0: off, ...
 `/etc/modprobe.d/limeboard.conf`; do not edit that file. Lines the Limeboard
 does not support are reported and ignored. The buses need a kernel with the
 Limeboard's dln2 changes: `modinfo -p i2c_dln2` lists `ports` on those.
+
+## Serial console, firmware and raspi-config
+
+`limeboard-config` also does what `raspi-config` does for a Pi's serial port
+and bootloader:
+
+**Login console on the header UART.** With a 3.3 V USB-serial cable on pins
+8 (TXD), 10 (RXD) and a GND pin, at 115200 baud:
+
+```sh
+sudo limeboard-config enable serial-console     # adds serial_console=on to config.txt
+```
+
+A login prompt then runs on `/dev/serial0`, also after resets of the STM32.
+It is off by default, as on a Pi: the UART is then free for HATs.
+
+**STM32 firmware.** The images carry the matching Limeboard I/O firmware:
+
+```sh
+limeboard-config firmware              # running: 1.1, shipped: 1.1
+sudo limeboard-config firmware update  # flash the shipped one, about 5 s
+```
+
+The update restarts the STM32 into its ROM bootloader, flashes it and waits
+for the firmware to come back, with the buses set up again. If the STM32 is
+left in its bootloader, run the update again. To reach the bootloader by
+hand, hold the user button while powering the board.
+
+**raspi-config.** HAT installers often run commands such as
+`raspi-config nonint do_i2c 0`. The Limeboard has a `raspi-config` that
+answers them through `limeboard-config`:
+
+| Command | Does |
+|---|---|
+| `raspi-config nonint do_i2c 0` / `1` | i2c1 on / off |
+| `raspi-config nonint do_spi 0` / `1` | spi0 on / off |
+| `raspi-config nonint do_serial_cons 0` / `1` | login console on / off |
+| `raspi-config nonint do_serial_hw 0` | the UART: always on |
+| `raspi-config nonint get_i2c` (`get_spi`, …) | prints 0 when on, 1 when off |
+| `raspi-config nonint is_pi` | fails: this is not a Pi |
+
+Other commands fail with a message. `raspi-config` without arguments shows
+`limeboard-config`'s help.
 
 ## Header pinout
 

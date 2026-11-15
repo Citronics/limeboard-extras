@@ -107,6 +107,10 @@ images, makes all three work unchanged:
 - **Adafruit Blinka**: `board` is the Limeboard's, with the Raspberry Pi pin
   names. Install Blinka with pip; it is not part of the images.
 
+Installers that run `raspi-config nonint do_i2c 0` or `do_spi 0` work too:
+the Limeboard's `raspi-config` turns the bus on through `limeboard-config`
+([raspi-config](README.md#serial-console-firmware-and-raspi-config)).
+
 The HAT's library therefore usually runs as is, within the limits of this
 page. For example, there is no PWM, and I2C messages are at most 256 bytes.
 Adafruit's SSD1306 OLED driver, for one, needs `page_addressing=True`.
