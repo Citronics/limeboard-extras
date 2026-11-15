@@ -9,8 +9,7 @@ In short:
 
 | | |
 |---|---|
-| **Works** | HATs that use only GPIO, I2C or the serial port, with their usual gpiozero, RPi.GPIO or Blinka libraries: relays, buttons, LEDs, I2C sensors, I2C ADCs, PCA9685 PWM and servo boards, I2C OLED displays, real-time clocks, GPS data |
-| **Not yet** | SPI HATs: the Limeboard has no `/dev/spidev` yet |
+| **Works** | HATs that use GPIO, I2C, SPI or the serial port, with their usual gpiozero, RPi.GPIO, Blinka or spidev libraries: relays, buttons, LEDs, I2C sensors, I2C ADCs, PCA9685 PWM and servo boards, I2C OLED displays, real-time clocks, GPS data |
 | **No** | audio (I2S), displays driven by kernel drivers or DPI, HATs that need the Pi's PWM or microsecond timing, HATs whose kernel driver needs a device tree overlay |
 
 Only the I2C pins (header pins 3 and 5) have been checked with real hardware.
@@ -31,11 +30,11 @@ differences:
 | Pull-up / pull-down resistors | internal, per pin | none: use external resistors |
 | PWM | 2 hardware channels | none |
 | I2C | up to 400 kHz and more | one bus, 100 kHz, 256 bytes per message |
-| SPI | `/dev/spidev0.0`, `/dev/spidev0.1` | the controller exists, but no `/dev/spidev` yet ([below](#spi)) |
+| SPI | `/dev/spidev0.0`, `/dev/spidev0.1` | the same, slower: a USB round trip per 256 bytes ([below](#spi)) |
 | UART | `/dev/serial0` | `/dev/ttyACM*`, a USB serial port |
 | I2S / PCM audio | yes | no |
 | DPI display, GPCLK, second SPI bus | yes | no |
-| Device tree overlays (`dtoverlay=`) | yes | no: the buses come over USB |
+| Device tree overlays (`dtoverlay=`) | yes | no: the buses come over USB. SPI chips: `/etc/modprobe.d/limeboard-spi.conf`; I2C chips: `new_device` |
 | HAT ID EEPROM (GPIO0/1) | read at boot, configures the HAT | not read: GPIO0/1 are plain GPIOs |
 
 ### Kernel drivers and device tree overlays
@@ -60,15 +59,24 @@ Two things still work:
 
 ### SPI
 
-The `dln2` driver creates the SPI controller (`/sys/class/spi_master/spi0`),
-but no device on it. On a Pi, the device tree creates the `spidev` devices
-that programs open (`/dev/spidev0.0` and `/dev/spidev0.1`). On the Limeboard
-nothing does yet, and Linux has no command to add one by hand. Until a small
-kernel change provides them, programs cannot use SPI.
+The SPI bus works like a Pi's with SPI enabled: `/dev/spidev0.0` (CE0) and
+`/dev/spidev0.1` (CE1), for py-spidev, gpiozero and Blinka. This needs a
+kernel whose `spi-dln2` driver creates them (`modinfo -p spi_dln2` lists
+`cs0`-`cs3`). Older kernels have the SPI controller but no `/dev/spidev`.
 
-When they exist, SPI will be slow by Pi standards: every transfer of up to
-256 bytes is a USB round trip. A 320×240 colour frame takes about 600
-transfers, so roughly half a second.
+On a Pi, a `dtoverlay=` line puts a kernel driver on a chip select instead.
+On the Limeboard that is a line in `/etc/modprobe.d/limeboard-spi.conf`,
+with the chip's name and optionally its interrupt GPIO:
+
+```sh
+options spi_dln2 cs0=mcp2515,irq=25,speed=10000000
+```
+
+The driver must be in the kernel; the Lime kernels do not build SPI chip
+drivers yet. See the [SPI example](examples/spi/README.md).
+
+SPI is slower than on a Pi: every transfer of up to 256 bytes is a USB round
+trip, so a few hundred KB/s at best, and the clock is 328 kHz to 42 MHz.
 
 ### Software that expects a Pi
 
@@ -118,16 +126,13 @@ work.
 | Fan HATs | on and off | speed control (PWM) |
 | Automation HATs | relays, inputs and I2C ADC | anything driven by PWM or SPI |
 
-### Not yet (SPI)
-
-These need `/dev/spidev`. Once it exists, the ones driven from user space
-will work, slowly:
+### SPI
 
 | HAT | Notes |
 |---|---|
-| E-paper displays (Waveshare, Inky) | refreshes are slow anyway: usable |
-| SPI ADCs: MCP3008, MCP3208 | usable |
-| LoRa HATs (SX127x, SX126x) | usable, if their library drives SPI and GPIO from user space |
+| E-paper displays (Waveshare, Inky) | their refreshes are slow anyway: usable |
+| SPI ADCs: MCP3008, MCP3208 | gpiozero's `MCP3008` class, or py-spidev |
+| LoRa HATs (SX127x, SX126x) | when their library drives SPI and GPIO from user space |
 | SPI LCDs driven from Python | about half a second per full frame |
 
 ### No
@@ -137,7 +142,7 @@ will work, slowly:
 | Audio: HiFiBerry, IQaudio, pHAT DAC, ReSpeaker microphones | need I2S, which the header does not carry. Use a USB sound card instead |
 | SPI displays with kernel drivers: PiTFT, Waveshare 3.5" LCD | need a kernel driver loaded by a device tree overlay |
 | DPI displays | the Pi's parallel display signals are not on the header |
-| CAN HATs (MCP2515) | the kernel CAN driver needs a device tree overlay and an interrupt |
+| CAN HATs (MCP2515) | possible with `cs0=mcp2515,irq=…`, but the Lime kernels do not build the CAN driver yet, and its oscillator clock comes from the device tree on a Pi |
 | Addressable LEDs from the Pi: Unicorn HAT, NeoPixel HATs | driven by the Pi's PWM, PCM or SPI timing |
 | Servos or motors straight on a GPIO, passive buzzers, dimmable LEDs | need PWM. Use a PCA9685 board |
 | DHT11/DHT22, HC-SR04, IR receivers and transmitters, 1-Wire on a GPIO | need microsecond timing; USB adds about 1 ms per operation |
@@ -146,7 +151,5 @@ will work, slowly:
 
 ## What would make more HATs work
 
-1. **`spidev` devices** on the SPI bus: a small kernel change would unlock
-   the user-space SPI HATs above.
-2. **PWM in the firmware** on a few pins, for fans, servos and LED dimming.
+1. **PWM in the firmware** on a few pins, for fans, servos and LED dimming.
    Linux's `dln2` driver has no PWM, so this needs a new way to reach it.

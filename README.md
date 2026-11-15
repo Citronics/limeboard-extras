@@ -24,6 +24,7 @@ repository.
   3. [LED on a header GPIO](examples/gpio-led/README.md)
   4. [The phone's motion sensors](examples/phone-sensors/README.md)
   5. [Your own devices in Home Assistant](examples/home-assistant/README.md)
+  6. [SPI](examples/spi/README.md)
 - Reusable code:
   - [`limeboard-compat`](limeboard-compat/README.md): gpiozero, RPi.GPIO and
     Adafruit Blinka on the Limeboard, without setup
@@ -43,7 +44,7 @@ it into these devices:
 | GPIO chip `dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
 | GPIO chip `dln2`, line 31 | onboard user button (input) |
 | I2C bus `dln2-i2c` (`/dev/i2c-N`) | SDA GPIO2, SCL GPIO3, 100 kHz |
-| SPI controller `spi0` (no `/dev/spidev` yet, see [HATS.md](HATS.md#spi)) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 |
+| SPI `/dev/spidev0.0`, `/dev/spidev0.1` ([SPI example](examples/spi/README.md)) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 |
 | IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
 | USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15 |
 
@@ -222,8 +223,9 @@ What to keep in mind:
   come over USB and cannot take overlays, so HAT kernel drivers do not load.
   Programs that drive the chips themselves (through I2C, GPIO or the serial
   port) work. See [HATS.md](HATS.md).
-- **No `/dev/spidev` yet.** The SPI controller exists, but nothing creates
-  `spidev` devices on it, so programs cannot use SPI yet.
+- **SPI chips without device tree.** `/dev/spidev0.0` and `0.1` work as on
+  a Pi. To put a kernel driver on a chip select instead, set it in
+  `/etc/modprobe.d/limeboard-spi.conf` (see the [SPI example](examples/spi/README.md)).
 - **One I2C bus and one SPI bus.** The Pi's second SPI bus (GPIO16-21) is
   not available.
 - **ADC.** The header has eight 10-bit analog inputs, which the Pi lacks.
