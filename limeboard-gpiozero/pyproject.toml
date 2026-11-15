@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "limeboard-gpiozero"
+version = "1.0"
+description = "gpiozero pin factory for the Citronics Limeboard header (Limeboard I/O firmware)"
+readme = "README.md"
+requires-python = ">=3.9"
+# lgpio is needed too. It is not listed: built from PyPI's source it needs
+# the lg C library, see README.md.
+dependencies = ["gpiozero>=2.0.1"]
+
+[project.entry-points.gpiozero_pin_factories]
+limeboard = "limeboard_gpiozero:LimeboardFactory"
+
+[tool.setuptools]
+py-modules = ["limeboard_gpiozero"]

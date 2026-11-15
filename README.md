@@ -20,6 +20,13 @@ repository.
   1. [Onboard RGB LED](examples/onboard-led/README.md)
   2. [I2C OLED display](examples/i2c-oled/README.md)
   3. [LED on a header GPIO](examples/gpio-led/README.md)
+  4. [The phone's motion sensors](examples/phone-sensors/README.md)
+  5. [Your own devices in Home Assistant](examples/home-assistant/README.md)
+- Reusable code:
+  - [`limeboard-gpiozero`](limeboard-gpiozero/README.md): the gpiozero pin
+    factory, as a package for `pip install`
+  - [`phone_sensors.py`](examples/phone-sensors/phone_sensors.py): reads
+    the phone's motion and light sensors
 
 ## What the firmware provides
 
@@ -186,6 +193,9 @@ What to keep in mind:
 - The factory lives in `limeboard_gpiozero.py`. In Python, without the
   environment variable:
   `Device.pin_factory = limeboard_gpiozero.LimeboardFactory()`.
+- Lime images include it. For other systems,
+  [`limeboard-gpiozero/`](limeboard-gpiozero/README.md) is the same factory
+  as a package for `pip install`.
 
 ## Differences from a Raspberry Pi
 
