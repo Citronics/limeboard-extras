@@ -9,8 +9,20 @@ In short:
 
 | | |
 |---|---|
-| **Works** | HATs that use GPIO, I2C, SPI or the serial port, with their usual gpiozero, RPi.GPIO, Blinka or spidev libraries: relays, buttons, LEDs, I2C sensors, I2C ADCs, PCA9685 PWM and servo boards, I2C OLED displays, real-time clocks, GPS data |
+| **Out of the box** | HATs that use GPIO, I2C, SPI or the serial port through their usual Python library (gpiozero, RPi.GPIO, Blinka, smbus2, spidev, pyserial): relays, buttons, LEDs, sensors, ADCs, PCA9685 PWM and servo boards, e-paper displays, GPS data |
+| **One extra step** | I2C OLED displays (one driver setting), kernel drivers for simple I2C chips such as real-time clocks (one command) |
 | **No** | audio (I2S), displays driven by kernel drivers or DPI, HATs that need the Pi's PWM or microsecond timing, HATs whose kernel driver needs a device tree overlay |
+
+"Out of the box" means the same steps as on a Pi: turn the HAT's bus on
+(`sudo limeboard-config enable i2c1`, like `raspi-config`), install the
+HAT's library, run it. Pi software finds the same devices:
+
+| Pi software uses | On the Limeboard (Fairphone 2) |
+|---|---|
+| `/dev/i2c-1`, `SMBus(1)` | i2c1, pins 3/5 |
+| `/dev/spidev0.0`, `spidev.open(0, 0)` | spi0, CE0 |
+| `/dev/serial0` | the header UART (a link to `/dev/ttyACM*`) |
+| GPIO numbers (BCM) | the same GPIOs |
 
 Only the I2C pins (header pins 3 and 5) have been checked with real hardware.
 The other pins follow the Raspberry Pi layout as defined by the firmware.
@@ -31,12 +43,12 @@ differences:
 | PWM | 2 hardware channels | none |
 | I2C | i2c1 on pins 3/5 (and i2c0 on pins 27/28), up to 400 kHz and more | i2c1 and i2c0 on the same pins, 100 kHz, 256 bytes per message; see [Bus names](README.md#bus-names) |
 | SPI | spi0, spi1 (`/dev/spidev0.x`, `1.x`) | the same two buses, slower: a USB round trip per 256 bytes ([below](#spi)) |
-| UART | `/dev/serial0`, and more UARTs on the Pi 4 and 5 | one: `/dev/ttyACM*`, a USB serial port ([why](README.md#one-uart)) |
+| UART | `/dev/serial0`, and more UARTs on the Pi 4 and 5 | one: `/dev/serial0`, a link to the USB serial port `/dev/ttyACM*` ([why only one](README.md#one-uart)) |
 | I2S / PCM audio | yes | no |
 | DPI display, GPCLK | yes | no |
 | `config.txt`: `dtparam=i2c_arm=on`, `dtparam=spi=on`, `dtoverlay=spi1-3cs`, `dtoverlay=i2c0` | yes, buses off by default | the same lines in `/etc/limeboard/config.txt`, buses off by default ([Turning the buses on](README.md#turning-the-buses-on)) |
 | Device tree overlays for chips (`dtoverlay=mcp2515`…) | yes | no: the buses come over USB. SPI chips: `spi0_cs0=mcp2515,irq=25` in `config.txt`; I2C chips: `new_device` |
-| HAT ID EEPROM (GPIO0/1) | read at boot, configures the HAT | not read: GPIO0/1 are plain GPIOs |
+| HAT ID EEPROM (GPIO0/1) | read at boot, configures the HAT | not read: GPIO0/1 are i2c0, a plain I2C bus |
 
 ### Kernel drivers and device tree overlays
 
@@ -104,40 +116,48 @@ work.
 
 ## HAT by HAT
 
-### Works
+✔ marks what has been run on a Limeboard. The rest follows from the
+interfaces and libraries the HAT uses. A library that looks for the
+Raspberry Pi's own GPIO chip by name, instead of going through RPi.GPIO,
+gpiozero or Blinka, needs to be pointed at the Limeboard's `dln2` chip.
 
-| HAT | Uses | Notes |
+### Out of the box
+
+Turn on the bus the HAT uses, install its library, run it.
+
+| HAT | Bus | Notes |
 |---|---|---|
-| Relay HATs, LED and button HATs, Traffic HAT | GPIO | their gpiozero, RPi.GPIO or Blinka libraries |
+| Relay HATs, LED and button HATs, Traffic HAT | GPIO | gpiozero, RPi.GPIO or Blinka libraries ✔ (LED, button) |
 | Active buzzers (on/off) | GPIO | passive buzzers need PWM, see below |
-| I2C sensors: BME280, BME680, BMP280, SHT31, LTR559, IMUs | I2C | `smbus2`-based libraries |
-| I2C ADC: ADS1115, ADS1015 | I2C | the board also has its own 8-channel ADC |
-| PWM and servo HATs: PCA9685 (Adafruit Servo HAT, PWM HAT, Motor HAT) | I2C | **the way to get PWM** on the Limeboard: the chip generates it |
-| I2C OLED displays: SSD1306, SH1106 | I2C | see the [OLED example](examples/i2c-oled/README.md): open the bus with `smbus2` |
-| Real-time clocks: DS3231, DS1307, PCF8523 | I2C | kernel driver added with `new_device` (no interrupt needed) |
-| I2C GPIO expanders: MCP23017, PCF8574 | I2C | from Python, or the kernel driver without interrupts |
-| 1-Wire through an I2C bridge (DS2482) | I2C | kernel driver `ds2482` with `new_device` |
-| GPS HATs: position data | UART | point gpsd at `/dev/ttyACM*` |
-| RS-485 / serial HATs | UART | `/dev/ttyACM*`. Direction control on a GPIO is slow (about 1 ms) |
+| I2C sensors: BME280, BME680, BMP280, SHT31, LTR559, IMUs | i2c1 | `smbus2` or Blinka libraries ✔ (Blinka I2C) |
+| I2C ADCs: ADS1115, ADS1015 | i2c1 | the board also has its own 8-channel ADC |
+| PWM and servo HATs: PCA9685 (Adafruit Servo HAT, PWM HAT, Motor HAT) | i2c1 | **the way to get PWM** on the Limeboard: the chip generates it |
+| SPI ADCs: MCP3008, MCP3208 | spi0 | gpiozero's `MCP3008` class, or py-spidev ✔ (the bus, with a loopback) |
+| Waveshare e-paper displays | spi0 + GPIO | their RPi.GPIO/gpiozero and spidev drivers; refreshes are slow anyway |
+| LoRa HATs (SX127x, SX126x) | spi0 + GPIO | when their library drives SPI and GPIO from user space |
+| GPS HATs: position data | UART | `gpsd /dev/serial0` |
+| RS-485 / serial HATs | UART | `/dev/serial0`. Direction control on a GPIO is slow (about 1 ms) |
+
+### One extra step
+
+| HAT | Step |
+|---|---|
+| I2C OLED displays: SSD1306, SH1106 ✔ | their driver writes a whole frame in one message; make it send smaller ones: `page_addressing=True` for Adafruit's driver, an `SMBus` for luma ([OLED example](examples/i2c-oled/README.md)) |
+| Real-time clocks: DS3231, DS1307, PCF8523 | instead of `dtoverlay=i2c-rtc`: `echo ds3231 0x68 \| sudo tee /sys/bus/i2c/devices/i2c-1/new_device` |
+| I2C GPIO expanders: MCP23017, PCF8574 | from Python as is, or the kernel driver with `new_device` (without interrupts) |
+| 1-Wire through an I2C bridge (DS2482) | `new_device` with the kernel driver `ds2482` |
+| SPI chips with a kernel driver (MCP3008 as IIO, …) | a `spi0_cs0=mcp3008` line in `config.txt` instead of `dtoverlay=`; the Lime kernels do not build these drivers yet |
+| Software that opens `/dev/ttyAMA0` | give it `/dev/serial0` |
 
 ### Partly
 
 | HAT | What works | What does not |
 |---|---|---|
-| Pimoroni Enviro+ | its I2C sensors | the SPI LCD, the particle sensor's control pins |
+| Pimoroni Enviro+ | its I2C sensors and gas ADC, its SPI LCD (slowly), the particle sensor on `/dev/serial0` | the microphone, which uses I2S |
 | Raspberry Pi Sense HAT | its I2C sensors, read directly | the LED matrix and joystick, which use kernel drivers |
 | GPS HATs with PPS | position data | the PPS precise-time pulse (kernel driver and microsecond timing) |
 | Fan HATs | on and off | speed control (PWM) |
-| Automation HATs | relays, inputs and I2C ADC | anything driven by PWM or SPI |
-
-### SPI
-
-| HAT | Notes |
-|---|---|
-| E-paper displays (Waveshare, Inky) | their refreshes are slow anyway: usable |
-| SPI ADCs: MCP3008, MCP3208 | gpiozero's `MCP3008` class, or py-spidev |
-| LoRa HATs (SX127x, SX126x) | when their library drives SPI and GPIO from user space |
-| SPI LCDs driven from Python | about half a second per full frame |
+| Automation HATs | relays, inputs, ADC | PWM outputs |
 
 ### No
 
@@ -146,7 +166,7 @@ work.
 | Audio: HiFiBerry, IQaudio, pHAT DAC, ReSpeaker microphones | need I2S, which the header does not carry. Use a USB sound card instead |
 | SPI displays with kernel drivers: PiTFT, Waveshare 3.5" LCD | need a kernel driver loaded by a device tree overlay |
 | DPI displays | the Pi's parallel display signals are not on the header |
-| CAN HATs (MCP2515) | possible with `spi0_cs0=mcp2515,irq=…`, but the Lime kernels do not build the CAN driver yet, and its oscillator clock comes from the device tree on a Pi |
+| CAN HATs (MCP2515) | the kernel CAN driver needs its oscillator clock from the device tree, and the Lime kernels do not build it |
 | Addressable LEDs from the Pi: Unicorn HAT, NeoPixel HATs | driven by the Pi's PWM, PCM or SPI timing |
 | Servos or motors straight on a GPIO, passive buzzers, dimmable LEDs | need PWM. Use a PCA9685 board |
 | DHT11/DHT22, HC-SR04, IR receivers and transmitters, 1-Wire on a GPIO | need microsecond timing; USB adds about 1 ms per operation |

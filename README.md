@@ -49,7 +49,7 @@ it into these devices:
 | SPI 0: `/dev/spidev0.0`, `/dev/spidev0.1` (Pi spi0) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 ([SPI example](examples/spi/README.md)) |
 | SPI 1: `/dev/spidev1.0`, `1.1`, `1.2` (Pi spi1) | MOSI GPIO20, MISO GPIO19, SCLK GPIO21, CE0 GPIO18, CE1 GPIO17, CE2 GPIO16 |
 | IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
-| USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15: [the only UART](#one-uart) |
+| `/dev/serial0`, a link to the USB serial port `/dev/ttyACM*` | UART TXD GPIO14, RXD GPIO15: [the only UART](#one-uart) |
 
 The GPIO line number is the BCM GPIO number, so GPIO17 is line 17 of the
 `dln2` chip. As on a Raspberry Pi, the I2C and SPI buses are off until you
@@ -89,7 +89,7 @@ SPI port"); older kernels show only the first of each.
 ### One UART
 
 The header has a single UART, on GPIO14 (TXD, pin 8) and GPIO15 (RXD,
-pin 10), as `/dev/ttyACM*`. The STM32's other UARTs have no usable TX/RX
+pin 10), as `/dev/ttyACM*`, with `/dev/serial0` as its link, as on a Pi. The STM32's other UARTs have no usable TX/RX
 pair on the header: one has its TX on GPIO3, which is I2C, the other its RX
 on the onboard LED. Each UART also needs its own USB serial interface, and
 the STM32's USB has no endpoints left for a second one. For more serial
