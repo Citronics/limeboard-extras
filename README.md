@@ -43,8 +43,8 @@ it into these devices:
 | GPIO chip `dln2`, lines 0-27 | header GPIO0 to GPIO27 (BCM numbering) |
 | GPIO chip `dln2`, lines 28, 29, 30 | onboard RGB LED: red, green, blue (1 = on) |
 | GPIO chip `dln2`, line 31 | onboard user button (input) |
-| I2C bus 1 (`/dev/i2c-N`, Pi i2c1) | SDA GPIO2, SCL GPIO3, 100 kHz |
-| I2C bus 0 (Pi i2c0) | SDA GPIO0, SCL GPIO1, 100 kHz ([second I2C bus](examples/i2c-oled/README.md#on-the-second-i2c-bus)) |
+| I2C bus `dln2-i2c-…-0` (Pi i2c1) | SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), 100 kHz: the usual I2C bus |
+| I2C bus `dln2-i2c-…-1` (Pi i2c0) | SDA GPIO0 (pin 27), SCL GPIO1 (pin 28), 100 kHz ([second I2C bus](examples/i2c-oled/README.md#on-the-second-i2c-bus)) |
 | SPI 0: `/dev/spidev0.0`, `/dev/spidev0.1` (Pi spi0) | MOSI GPIO10, MISO GPIO9, SCLK GPIO11, CE0 GPIO8, CE1 GPIO7 ([SPI example](examples/spi/README.md)) |
 | SPI 1: `/dev/spidev1.0`, `1.1`, `1.2` (Pi spi1) | MOSI GPIO20, MISO GPIO19, SCLK GPIO21, CE0 GPIO18, CE1 GPIO17, CE2 GPIO16 |
 | IIO ADC `dln2-adc`, 8 channels, 10-bit, 0-3.3 V | GPIO5, 12, 16, 22, 17, 25, 20, 23 |
@@ -55,6 +55,27 @@ The GPIO line number is the BCM GPIO number, so GPIO17 is line 17 of the
 the ADC claim their pins on first use (an SPI chip select on its own first
 use), and the UART claims its pins while its serial port is open. A claimed
 pin stays with its function until the STM32 resets.
+
+### Bus names
+
+The buses keep the Raspberry Pi's names, so that Pi documentation and
+tutorials match the pins. On a Pi, i2c1 is the I2C bus of pins 3 and 5, and
+i2c0, on GPIO0/1, is the bus of the HAT ID EEPROM. The Limeboard has both,
+but its Linux device numbers are given in the order the buses appear, after
+the phone's own:
+
+| Pins | Pi name | Linux device (Fairphone 2) | `i2cdetect -l` name ends in |
+|---|---|---|---|
+| 3, 5 (GPIO2/3) | i2c1 | `/dev/i2c-1` | `-0` |
+| 27, 28 (GPIO0/1) | i2c0 | `/dev/i2c-2` | `-1` |
+| 19, 21, 23, chip selects 24, 26 | spi0 | `/dev/spidev0.0`, `0.1` | |
+| 38, 35, 40, chip selects 12, 11, 36 | spi1 | `/dev/spidev1.0`, `1.1`, `1.2` | |
+
+`/dev/i2c-0` is the phone's own I2C controller, so the Limeboard's i2c0 cannot
+be `/dev/i2c-0`. Find a bus by its name instead of its number:
+`i2cdetect -l | grep dln2`. The `-0` or `-1` at the end of the name is the
+Limeboard I2C port. GPIO0/1 are a plain I2C bus here: the Limeboard does not
+read HAT EEPROMs.
 
 The second I2C and SPI buses need a kernel whose `dln2` driver adds a bus for
 each port (Citronics kernels with "mfd: dln2: add a cell for each I2C and

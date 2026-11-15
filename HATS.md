@@ -29,7 +29,7 @@ differences:
 | GPIO | direct, microsecond timing | over USB: about 1 ms per operation. Edge events work |
 | Pull-up / pull-down resistors | internal, per pin | none: use external resistors |
 | PWM | 2 hardware channels | none |
-| I2C | i2c1 (and i2c0), up to 400 kHz and more | i2c1 and i2c0, in the same positions, 100 kHz, 256 bytes per message |
+| I2C | i2c1 on pins 3/5 (and i2c0 on pins 27/28), up to 400 kHz and more | i2c1 and i2c0 on the same pins, 100 kHz, 256 bytes per message; see [Bus names](README.md#bus-names) |
 | SPI | spi0, spi1 (`/dev/spidev0.x`, `1.x`) | the same two buses, slower: a USB round trip per 256 bytes ([below](#spi)) |
 | UART | `/dev/serial0`, and more UARTs on the Pi 4 and 5 | one: `/dev/ttyACM*`, a USB serial port ([why](README.md#one-uart)) |
 | I2S / PCM audio | yes | no |

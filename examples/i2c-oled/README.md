@@ -52,12 +52,13 @@ sudo ~/limeboard-venv/bin/python oled.py 3d       # another address
 ## On the second I2C bus
 
 The Limeboard has a second I2C bus on GPIO0 (SDA, pin 27) and GPIO1 (SCL,
-pin 28), where a Raspberry Pi has its i2c0. To use it, move the display's SDA
-to pin 27 and SCL to pin 28, keep VCC and GND, then:
+pin 28), where a Raspberry Pi has its i2c0 (see
+[Bus names](../../README.md#bus-names)). To use it, move the display's SDA to
+pin 27 and SCL to pin 28, keep VCC and GND, then:
 
 ```sh
 i2cdetect -l | grep dln2              # two buses: names end in -0 (GPIO2/3) and -1 (GPIO0/1)
-sudo i2cdetect -y -r 2                # the -1 bus's number
+sudo i2cdetect -y -r 2                # the -1 bus: /dev/i2c-2 on a Fairphone 2
 sudo ~/limeboard-venv/bin/python oled.py 3c 1
 ```
 

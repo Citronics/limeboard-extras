@@ -109,8 +109,9 @@ hardware PWM, PCM/I2S audio, GPCLK, and more than one UART (see
 [One UART](README.md#one-uart)). The HAT ID EEPROM is not read at boot: GPIO0/1
 are a plain second I2C bus here.
 
-The buses, as on a Pi with i2c0, spi0 and spi1 enabled:
-- I2C1 on GPIO2/3 and I2C0 on GPIO0/1;
+The buses, with their Raspberry Pi names (see [Bus names](README.md#bus-names)
+for their Linux devices):
+- i2c1 on GPIO2/3, the usual I2C bus, and i2c0 on GPIO0/1;
 - SPI0 (`/dev/spidev0.0`, `0.1`) on GPIO9-11, chip selects GPIO8/7;
 - SPI1 (`/dev/spidev1.0`, `1.1`, `1.2`) on GPIO19-21, chip selects GPIO18/17/16.
 
