@@ -1,0 +1,90 @@
+name: release
+
+# On every push to main that changes what the packages contain: tag the next
+# version (v1.0 -> v1.0.1 -> v1.0.2 ...; human tags keep working), build
+# limeboard-io, limeboard-ha and the Python GPIO libraries, install them in
+# Debian and Ubuntu armhf containers, release them, and refresh the APT
+# repository (Citronics/deb-packages, APT_DISPATCH_TOKEN secret).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'limeboard-config/**'
+      - 'limeboard-compat/**'
+      - 'limeboard-gpiozero/**'
+      - 'limeboard-ha/**'
+      - 'udev/**'
+      - 'packaging/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Next version
+        id: version
+        run: |
+          git config user.name "Marc Lainez"
+          git config user.email "marc.lainez@gmail.com"
+          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+(\.[0-9]+)+$' | head -1)
+          if [ -z "$LATEST" ]; then
+            NEXT=v1.0
+          elif [ "$(git rev-list -n1 "$LATEST")" = "$(git rev-parse HEAD)" ]; then
+            NEXT=$LATEST
+          else
+            case "$LATEST" in
+              v*.*.*) NEXT="${LATEST%.*}.$(( ${LATEST##*.} + 1 ))" ;;
+              *) NEXT="$LATEST.1" ;;
+            esac
+            git tag "$NEXT"
+          fi
+          echo "tag=$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq dpkg-dev >/dev/null
+          packaging/build-debs.sh
+          packaging/python/build-python-debs.sh
+
+      - name: Smoke test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download --repo Citronics/limeboard-firmware --pattern 'limeboard-io-firmware_*_all.deb' --dir /tmp/fw
+          FIRMWARE_DEB=$(ls /tmp/fw/*.deb | tail -1) packaging/smoke-test.sh
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git push origin "$TAG"
+          gh release create "$TAG" dist/*.deb --title "limeboard-extras $TAG" \
+            --notes "limeboard-io, limeboard-ha and the Python GPIO libraries (packaging/python/versions)."
+
+      - name: Refresh the APT repository
+        env:
+          GH_TOKEN: ${{ secrets.APT_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::APT_DISPATCH_TOKEN is not set: the release is on GitHub but not in the APT repository"
+            exit 1
+          fi
+          gh api repos/Citronics/deb-packages/dispatches -f event_type=update-repo

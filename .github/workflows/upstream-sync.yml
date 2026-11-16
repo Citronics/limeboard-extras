@@ -1,0 +1,82 @@
+name: upstream-sync
+
+# Follow PyPI: when gpiozero, rpi-lgpio or lgpio has a newer release than
+# packaging/python/versions, build and install-test the packages with it,
+# then commit the new versions to main and start release.yml (a push made with
+# the workflow token does not start other workflows; a dispatch does).
+# A build that fails (e.g. the lgpio patch no longer applies) commits nothing
+# and fails this run.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Newer upstream versions
+        id: check
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          path = "packaging/python/versions"
+          lines = open(path).read().splitlines()
+          changed = []
+          out = []
+          for line in lines:
+              parts = line.split()
+              if len(parts) == 2 and not line.startswith("#"):
+                  name, current = parts
+                  latest = json.load(urllib.request.urlopen(f"https://pypi.org/pypi/{name}/json"))["info"]["version"]
+                  if latest != current:
+                      changed.append(f"{name} {current} -> {latest}")
+                      line = f"{name} {latest}"
+              out.append(line)
+          open(path, "w").write("\n".join(out) + "\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"changed={'; '.join(changed)}\n")
+          print("\n".join(changed) or "up to date")
+          PY
+
+      - uses: docker/setup-qemu-action@v3
+        if: steps.check.outputs.changed != ''
+        with:
+          platforms: arm
+
+      - name: Build and test
+        if: steps.check.outputs.changed != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=0~sync packaging/build-debs.sh
+          packaging/python/build-python-debs.sh
+          gh release download --repo Citronics/limeboard-firmware --pattern 'limeboard-io-firmware_*_all.deb' --dir /tmp/fw
+          FIRMWARE_DEB=$(ls /tmp/fw/*.deb | tail -1) packaging/smoke-test.sh
+
+      - name: Commit
+        if: steps.check.outputs.changed != ''
+        run: |
+          git config user.name "Marc Lainez"
+          git config user.email "marc.lainez@gmail.com"
+          git add packaging/python/versions
+          git commit -m "packaging/python: ${{ steps.check.outputs.changed }}"
+          git push origin HEAD:main
+
+      - name: Release
+        if: steps.check.outputs.changed != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref main
