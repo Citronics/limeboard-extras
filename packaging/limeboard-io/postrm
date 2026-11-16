@@ -1,0 +1,8 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -e
+if [ "$1" = purge ]; then
+	rm -f /etc/modprobe.d/limeboard.conf /etc/limeboard/config.txt
+	rmdir /etc/limeboard 2>/dev/null || true
+fi
+exit 0

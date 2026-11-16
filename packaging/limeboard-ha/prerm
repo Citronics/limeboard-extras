@@ -1,0 +1,7 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -e
+if [ "$1" = remove ] && [ -d /run/systemd/system ]; then
+	systemctl stop limeboard-ha.service || true
+fi
+exit 0

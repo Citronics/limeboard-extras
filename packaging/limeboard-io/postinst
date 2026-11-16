@@ -1,0 +1,54 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -e
+
+if [ "$1" = configure ]; then
+	# The groups owning the header's devices (91-limeboard-groups.rules)
+	for g in gpio spi i2c; do
+		getent group "$g" >/dev/null || groupadd -r "$g"
+	done
+
+	# The bus settings: /etc/limeboard/config.txt is the user's, installed
+	# once and never replaced; limeboard-config turns it into the driver's
+	# options (/etc/modprobe.d/limeboard.conf) and applies them now when the
+	# driver is loaded.
+	if [ ! -e /etc/limeboard/config.txt ]; then
+		install -D -m 0644 /usr/share/limeboard/config.txt /etc/limeboard/config.txt
+	fi
+	limeboard-config >/dev/null 2>&1 || true
+
+	# Python libraries pip installed in /usr/local by images built before
+	# these packages: they would hide the packaged ones.
+	for d in /usr/local/lib/python3*/dist-packages; do
+		[ -d "$d" ] || continue
+		for info in "$d"/gpiozero-*.dist-info "$d"/colorzero-*.dist-info \
+			    "$d"/lgpio-*.dist-info "$d"/rpi_lgpio-*.dist-info; do
+			[ -f "$info/INSTALLER" ] && grep -qx pip "$info/INSTALLER" || continue
+			sed -n 's|^\([^,]*\),.*|\1|p' "$info/RECORD" | while read -r f; do
+				case "$f" in
+				../../../bin/*) rm -f "/usr/local/bin/${f##*/}" ;;
+				..*|/*) ;;
+				*) rm -f "$d/$f" ;;
+				esac
+			done
+			rm -rf "$info"
+		done
+		find "$d" -depth -type d -empty -delete 2>/dev/null || true
+	done
+
+	# The serial console unit images used to install in /etc, where it
+	# would hide this package's
+	f=/etc/systemd/system/limeboard-serial-console.service
+	if [ -f "$f" ] && [ "$(md5sum < "$f" | cut -d' ' -f1)" = "05b35b2c3c80859745413af3a2d87f75" ]; then
+		rm -f "$f"
+	fi
+
+	if [ -d /run/udev ]; then
+		udevadm control --reload || true
+		udevadm trigger --action=change --subsystem-match=gpio --subsystem-match=spidev || true
+	fi
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload || true
+	fi
+fi
+exit 0

@@ -1,0 +1,30 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -e
+
+if [ "$1" = configure ]; then
+	# The settings hold the MQTT password: installed once, root only, and
+	# never replaced.
+	if [ ! -e /etc/limeboard-ha.conf ]; then
+		install -m 0600 /usr/share/limeboard-ha/limeboard-ha.conf /etc/limeboard-ha.conf
+	fi
+
+	# The unit images used to install in /etc, where it would hide this
+	# package's
+	f=/etc/systemd/system/limeboard-ha.service
+	if [ -f "$f" ] && [ "$(md5sum < "$f" | cut -d' ' -f1)" = "64bbf0886f65966120bf864d7cf8d22f" ]; then
+		rm -f "$f"
+	fi
+
+	# Enabled on first install; an administrator's disable is kept.
+	if [ -z "$2" ]; then
+		systemctl enable limeboard-ha.service >/dev/null 2>&1 || true
+	fi
+	if [ -d /run/systemd/system ]; then
+		systemctl daemon-reload || true
+		if systemctl is-enabled --quiet limeboard-ha.service; then
+			systemctl restart limeboard-ha.service || true
+		fi
+	fi
+fi
+exit 0

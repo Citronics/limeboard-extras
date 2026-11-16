@@ -1,0 +1,17 @@
+Package: limeboard-io
+Version: @VERSION@
+Architecture: all
+Maintainer: Citronics <info@citronics.eu>
+Depends: python3, udev, dfu-util, gpiod, i2c-tools, python3-libgpiod, python3-smbus2, python3-spidev, python3-gpiozero (>= 2.0.1), python3-lgpio (>= 0.2.2.0), limeboard-io-firmware
+Recommends: python3-rpi-lgpio, can-utils, iproute2
+Section: misc
+Priority: optional
+Homepage: https://github.com/Citronics/limeboard-extras
+Description: Limeboard header as Raspberry Pi style Linux devices
+ Tools for the Limeboard's STM32 running the Limeboard I/O firmware, whose
+ header the kernel's citronics-dln2 driver turns into a GPIO chip, I2C and
+ SPI buses, an ADC and /dev/serial0: limeboard-config (and a raspi-config
+ for HAT installers) to turn the buses on as on a Raspberry Pi and update
+ the firmware, gpiozero's "limeboard" pin factory, RPi.GPIO and Blinka
+ compatibility, and udev rules giving the gpio, spi and i2c groups the
+ header.

@@ -1,0 +1,8 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -e
+if [ "$1" = purge ]; then
+	systemctl disable limeboard-ha.service >/dev/null 2>&1 || true
+	rm -f /etc/limeboard-ha.conf
+fi
+exit 0
