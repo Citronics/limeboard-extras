@@ -147,12 +147,22 @@ sudo limeboard-config enable serial-console     # adds serial_console=on to conf
 A login prompt then runs on `/dev/serial0`, also after resets of the STM32.
 It is off by default, as on a Pi: the UART is then free for HATs.
 
-**STM32 firmware.** The images carry the matching Limeboard I/O firmware:
+**STM32 firmware.** The Limeboard ships with CircuitPython on its STM32,
+and keeps it: the Limeboard I/O firmware, which this guide needs, is
+opt-in. The images carry it, and one command replaces CircuitPython with it,
+saving the board's previous firmware in `/var/backups/limeboard` first:
 
 ```sh
-limeboard-config firmware              # running: 1.1, shipped: 1.1
+sudo limeboard-config firmware install # CircuitPython -> Limeboard I/O firmware
+limeboard-config firmware              # running: 1.3, shipped: 1.3
 sudo limeboard-config firmware update  # flash the shipped one, about 5 s
 ```
+
+Once a board runs the Limeboard I/O firmware, a newer one shipped by a
+package upgrade goes onto it by itself; a board on CircuitPython is never
+flashed without that `install`. To go back to CircuitPython:
+`sudo limeboard-config firmware install /var/backups/limeboard/<date>/flash.bin`
+(the CIRCUITPY files are saved next to it, in `files/`).
 
 The update restarts the STM32 into its ROM bootloader, flashes it and waits
 for the firmware to come back, with the buses set up again. If the STM32 is
