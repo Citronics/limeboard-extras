@@ -142,13 +142,28 @@ In Home Assistant:
 3. Create a Home Assistant user for the board. Do not use `homeassistant`
    or `addons`, which the add-on reserves.
 
-Then set `MQTT_HOST`, `MQTT_USER` and `MQTT_PASSWORD`, and restart the
-agent:
+The agent is opt-in: installed, but not started until you turn it on.
+`limeboard-config` asks for the broker, the user and the password (not
+echoed), stores them in `/etc/limeboard-ha.conf` (readable by root only)
+and starts the agent, now and at every boot:
 
 ```sh
-systemctl restart limeboard-ha            # Debian, Ubuntu
-/etc/init.d/S95limeboard-ha restart       # Buildroot
+sudo limeboard-config ha setup
+limeboard-config ha                       # on or off, which broker
+sudo limeboard-config ha disable          # stop it (ha enable: start it again)
 ```
+
+From a script, without prompts, the password comes on standard input:
+
+```sh
+printf '%s\n' "$PASSWORD" | sudo limeboard-config ha setup \
+    --host 192.168.1.10 --user limeboard --password-stdin
+```
+
+The settings can also be edited by hand; then `limeboard-config ha enable`
+(or a restart of the agent) applies them. On Buildroot, the agent starts at
+boot when `/etc/default/limeboard-ha` holds `ENABLED=yes`, which
+`limeboard-config ha enable` writes.
 
 The board appears under Settings > Devices & services > MQTT.
 

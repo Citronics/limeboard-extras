@@ -159,6 +159,15 @@ for the firmware to come back, with the buses set up again. If the STM32 is
 left in its bootloader, run the update again. To reach the bootloader by
 hand, hold the user button while powering the board.
 
+**Home Assistant agent.** `limeboard-ha` (opt-in, off until set up) shows
+the board, its LED, its button and the phone's sensors in Home Assistant:
+
+```sh
+sudo limeboard-config ha setup         # broker, user, password; then starts it
+```
+
+See [limeboard-ha/README.md](limeboard-ha/README.md).
+
 **raspi-config.** HAT installers often run commands such as
 `raspi-config nonint do_i2c 0`. The Limeboard has a `raspi-config` that
 answers them through `limeboard-config`:
@@ -347,7 +356,7 @@ What to keep in mind:
 
 ## The Home Assistant agent and the onboard LED
 
-On images that include `limeboard-ha`, the Home Assistant agent uses the
+When the Home Assistant agent (`limeboard-ha`, opt-in) runs, it uses the
 onboard LED and button (lines 28-31). A line in use by one program cannot be
 requested by another, and the tools report `Device or resource busy`.
 Control the LED from Home Assistant, or stop the agent before you use it

@@ -12,6 +12,12 @@
                                        replace the board's firmware (e.g. the CircuitPython
                                        it ships with) by the shipped one, or by FILE, a
                                        custom firmware .bin (backup in /var/backups/limeboard)
+    limeboard-config ha                the Home Assistant agent (limeboard-ha): on or off, broker
+    limeboard-config ha setup          set the MQTT broker, user and password (asked, not
+                                       echoed), then turn the agent on; --host H --port P
+                                       --user U --password-stdin set them without asking
+    limeboard-config ha enable         start the agent now and at every boot
+    limeboard-config ha disable        stop it
 
 The buses are off until /etc/limeboard/config.txt turns them on, with the
 lines a Raspberry Pi's config.txt uses:
@@ -591,6 +597,155 @@ def edit(item, on):
         warn(f"a line of {CONFIG} turns {item} on with other buses: edit it")
 
 
+# Home Assistant agent ------------------------------------------------------------
+
+HA_CONF = "/etc/limeboard-ha.conf"
+HA_DEFAULT = "/etc/default/limeboard-ha"   # Buildroot: ENABLED=yes starts the agent
+HA_SERVICE = "limeboard-ha.service"
+HA_INIT = "/etc/init.d/S95limeboard-ha"
+HA_KEYS = ("MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASSWORD")
+
+
+def ha_installed():
+    return os.path.exists("/usr/bin/limeboard-ha")
+
+
+def ha_systemd():
+    return os.path.isdir("/run/systemd/system")
+
+
+def ha_read():
+    """The agent's settings, parsed the way limeboard-ha parses them."""
+    conf = {}
+    for line in read_lines(HA_CONF):
+        if "=" in line and not line.lstrip().startswith("#"):
+            key, value = line.strip().split("=", 1)
+            conf[key] = value.strip("'\"")
+    return conf
+
+
+def ha_write(updates):
+    """Replace or add KEY="value" lines; the file stays readable by root only."""
+    for key, value in updates.items():
+        if "\n" in value or value[:1] in "'\"" and value or value[-1:] in "'\"" and value:
+            sys.exit(f"limeboard-config: {key} cannot contain a line break or start or "
+                     "end with a quote")
+    lines, done = read_lines(HA_CONF), set()
+    for i, line in enumerate(lines):
+        key = line.split("=", 1)[0].strip()
+        if "=" in line and not line.lstrip().startswith("#") and key in updates:
+            lines[i] = f'{key}="{updates[key]}"'
+            done.add(key)
+    lines += [f'{key}="{value}"' for key, value in updates.items() if key not in done]
+    tmp = HA_CONF + ".new"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, HA_CONF)
+
+
+def ha_enabled():
+    if ha_systemd():
+        return run("systemctl", "is-enabled", "--quiet", HA_SERVICE)
+    return any(re.match(r'\s*ENABLED="?yes"?\s*$', line) for line in read_lines(HA_DEFAULT))
+
+
+def ha_running():
+    if ha_systemd():
+        return run("systemctl", "is-active", "--quiet", HA_SERVICE)
+    pid = read_lines("/var/run/limeboard-ha.pid")
+    return bool(pid) and os.path.exists(f"/proc/{pid[0].strip()}")
+
+
+def ha_set(on):
+    """Turn the agent on (and restart it, for new settings) or off, now and at boot."""
+    if ha_systemd():
+        if on:
+            run("systemctl", "enable", HA_SERVICE)
+            ok = run("systemctl", "restart", HA_SERVICE)
+        else:
+            ok = run("systemctl", "disable", "--now", HA_SERVICE)
+    else:
+        lines = [l for l in read_lines(HA_DEFAULT) if not re.match(r"\s*ENABLED=", l)]
+        lines.append(f"ENABLED={'yes' if on else 'no'}")
+        with open(HA_DEFAULT, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        ok = run(HA_INIT, "restart" if on else "stop")
+    if not ok:
+        warn(f"could not {'start' if on else 'stop'} the agent")
+
+
+def ha_show():
+    if not ha_installed():
+        print("limeboard-ha: not installed")
+        return
+    conf = ha_read() if os.access(HA_CONF, os.R_OK) else None
+    state = "on" if ha_enabled() else "off (opt-in: limeboard-config ha setup)"
+    print(f"agent: {state}, {'running' if ha_running() else 'not running'}")
+    if conf is None:
+        print(f"broker: {HA_CONF} is readable by root only (use sudo)")
+        return
+    host = conf.get("MQTT_HOST", "")
+    if host:
+        user = conf.get("MQTT_USER", "")
+        print(f"broker: {user + '@' if user else ''}{host}:{conf.get('MQTT_PORT', '1883')}, "
+              f"password {'set' if conf.get('MQTT_PASSWORD') else 'not set'}")
+    else:
+        print("broker: not set")
+
+
+def ha_setup(options):
+    conf = ha_read()
+    updates = {}
+    flags = {"--host": "MQTT_HOST", "--port": "MQTT_PORT", "--user": "MQTT_USER"}
+    stdin_password = "--password-stdin" in options
+    options = [o for o in options if o != "--password-stdin"]
+    if len(options) % 2 or any(o not in flags for o in options[::2]):
+        sys.exit(__doc__.split("\n\n")[1])
+    for flag, value in zip(options[::2], options[1::2]):
+        updates[flags[flag]] = value
+    if stdin_password:
+        updates["MQTT_PASSWORD"] = sys.stdin.readline().rstrip("\n")
+    elif not options:
+        import getpass
+        for key, label in (("MQTT_HOST", "Broker host"), ("MQTT_PORT", "Broker port"),
+                           ("MQTT_USER", "User")):
+            current = conf.get(key, "")
+            answer = input(f"{label} [{current}]: ").strip()
+            if answer:
+                updates[key] = answer
+        password = getpass.getpass("Password (empty keeps the current one): ")
+        if password:
+            updates["MQTT_PASSWORD"] = password
+    if "MQTT_PORT" in updates and not updates["MQTT_PORT"].isdigit():
+        sys.exit("limeboard-config: the port must be a number")
+    if updates:
+        ha_write(updates)
+    if not ha_read().get("MQTT_HOST"):
+        sys.exit("limeboard-config: no broker host set; the agent stays off")
+    ha_set(True)
+    ha_show()
+
+
+def ha(args):
+    if not ha_installed():
+        sys.exit("limeboard-config: limeboard-ha is not installed")
+    if args and os.geteuid() != 0:
+        sys.exit("limeboard-config: run it with sudo")
+    if not args:
+        ha_show()
+    elif args[0] == "setup":
+        ha_setup(args[1:])
+    elif args in (["enable"], ["disable"]):
+        if args == ["enable"] and not ha_read().get("MQTT_HOST"):
+            warn("no broker host set: the agent stays idle (limeboard-config ha setup)")
+        ha_set(args == ["enable"])
+        ha_show()
+    else:
+        sys.exit(__doc__.split("\n\n")[1])
+
+
 def main(argv):
     args = argv[1:]
     if not args:
@@ -608,6 +763,8 @@ def main(argv):
                  auto="--auto" in args)
     elif args[:2] == ["firmware", "install"] and len(args) == 3:
         firmware("install", image=args[2])
+    elif args[:1] == ["ha"]:
+        ha(args[1:])
     else:
         sys.exit(__doc__.split("\n\n")[1])
 
