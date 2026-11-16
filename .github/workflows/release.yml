@@ -46,6 +46,7 @@ jobs:
           LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+(\.[0-9]+)+$' | head -1)
           if [ -z "$LATEST" ]; then
             NEXT=v1.0
+            git tag "$NEXT"
           elif [ "$(git rev-list -n1 "$LATEST")" = "$(git rev-parse HEAD)" ]; then
             NEXT=$LATEST
           else
