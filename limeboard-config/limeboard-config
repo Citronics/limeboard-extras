@@ -7,7 +7,11 @@
     limeboard-config enable ITEM       turn on: i2c1, i2c0, spi0, spi1, serial-console
     limeboard-config disable ITEM      turn off
     limeboard-config firmware          the STM32 firmware: running and shipped versions
-    limeboard-config firmware update   flash the shipped firmware (--force: even if the same)
+    limeboard-config firmware update   flash the shipped firmware when newer (--force: any)
+    limeboard-config firmware install [FILE]
+                                       replace the board's firmware (e.g. the CircuitPython
+                                       it ships with) by the shipped one, or by FILE, a
+                                       custom firmware .bin (backup in /var/backups/limeboard)
 
 The buses are off until /etc/limeboard/config.txt turns them on, with the
 lines a Raspberry Pi's config.txt uses:
@@ -54,6 +58,7 @@ USB_ID = ("1209", "0001")       # the Limeboard I/O firmware
 MODULE = "citronics_dln2"        # its driver module
 DRIVER = "citronics-dln2"        # the prefix of its devices and drivers
 DFU_ID = ("0483", "df11")       # the STM32's ROM bootloader
+FLASH_SIZE = 512 * 1024         # the STM32F401xE's flash
 
 # Pi name -> Limeboard port, and the chip selects of each SPI port
 I2C_PORTS = {"i2c1": 0, "i2c0": 1}
@@ -341,35 +346,208 @@ def wait_for(ids, seconds):
     return False
 
 
-def firmware(update=False, force=False):
-    running, shipped = running_version(), shipped_version()
-    in_bootloader = usb_device(DFU_ID) is not None
-    print(f"running: {running or ('none: the STM32 is in its bootloader' if in_bootloader else 'none')}")
-    print(f"shipped: {shipped or 'none'} ({FIRMWARE})")
-    if not update:
-        return
-    if shipped is None or not os.path.exists(FIRMWARE):
-        sys.exit("limeboard-config: no firmware to flash")
-    if running == shipped and not force:
-        print("already up to date (--force flashes anyway)")
-        return
-    if not in_bootloader:
-        if running is None:
-            sys.exit("limeboard-config: no Limeboard I/O firmware or bootloader found on USB")
-        print("restarting the STM32 into its bootloader...")
-        run("dfu-util", "-d", ":".join(USB_ID), "-e")
-        if not wait_for(DFU_ID, 10):
-            sys.exit("limeboard-config: the bootloader did not appear")
-    print(f"flashing {shipped}...")
+def version_tuple(version):
+    return tuple(int(part) for part in version.split("."))
+
+
+def other_firmware():
+    """The sysfs directory of a Limeboard STM32 running other firmware, such
+    as the CircuitPython it ships with, recognised by its product name."""
+    base = "/sys/bus/usb/devices"
+    for name in sorted(os.listdir(base)):
+        try:
+            ids = (open(f"{base}/{name}/idVendor").read().strip(),
+                   open(f"{base}/{name}/idProduct").read().strip())
+            product = open(f"{base}/{name}/product").read().strip()
+        except OSError:
+            continue
+        if "Limeboard" in product and ids not in (USB_ID, DFU_ID):
+            return f"{base}/{name}"
+    return None
+
+
+def device_nodes(device, kind):
+    """The /dev nodes of a USB device's serial ports ("tty") or disks
+    ("block")."""
+    nodes = []
+    for root, dirs, _ in os.walk(device):
+        if os.path.basename(root) == kind:
+            nodes += [f"/dev/{d}" for d in dirs]
+            dirs.clear()
+    return sorted(nodes)
+
+
+def circuitpython_to_bootloader(tty):
+    """Interrupt CircuitPython on its REPL and reset it into the STM32's ROM
+    bootloader. False when no REPL prompt answered."""
+    import select
+    import termios
+    fd = os.open(tty, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+    attrs = termios.tcgetattr(fd)
+    attrs[0] = attrs[1] = attrs[3] = 0
+    attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
+    attrs[4] = attrs[5] = termios.B115200
+    termios.tcsetattr(fd, termios.TCSANOW, attrs)
+
+    def read(seconds, until=None):
+        out = b""
+        end = time.time() + seconds
+        while time.time() < end and not (until and until in out):
+            if select.select([fd], [], [], 0.1)[0]:
+                try:
+                    out += os.read(fd, 4096)
+                except OSError:
+                    break
+        return out
+
+    try:
+        for _ in range(3):
+            os.write(fd, b"\x03\x03")  # stop code.py
+            out = read(2, b">>> ")
+            if b">>> " not in out:
+                os.write(fd, b"\r")  # "Press any key to enter the REPL"
+                out += read(2, b">>> ")
+            if b">>> " in out:
+                break
+        else:
+            return False
+        for line in (b"import microcontroller\r",
+                     b"microcontroller.on_next_reset(microcontroller.RunMode.BOOTLOADER)\r"):
+            os.write(fd, line)
+            read(2, b">>> ")
+        os.write(fd, b"microcontroller.reset()\r")
+        read(1)
+    except OSError:
+        pass  # the reset closes the port
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+    return True
+
+
+def backup_files(device, backup):
+    """Copy the files of the device's drive (CIRCUITPY) to backup."""
+    for disk in device_nodes(device, "block"):
+        for part in (f"{disk}1", disk):
+            if not os.path.exists(part):
+                continue
+            mnt = f"/run/limeboard-backup-{os.getpid()}"
+            os.makedirs(mnt, exist_ok=True)
+            if run("mount", "-o", "ro", part, mnt):
+                try:
+                    return run("cp", "-a", f"{mnt}/.", f"{backup}/files")
+                finally:
+                    run("umount", mnt)
+                    os.rmdir(mnt)
+            os.rmdir(mnt)
+    return False
+
+
+def flash_firmware(image, name):
+    """Flash image from the bootloader; for the Limeboard I/O firmware, wait
+    until it runs."""
+    print(f"flashing {name}...")
     result = subprocess.run(["dfu-util", "-d", ":".join(DFU_ID), "-a", "0",
-                             "-s", "0x08000000:leave", "-D", FIRMWARE],
+                             "-s", "0x08000000:leave", "-D", image],
                             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    if image != FIRMWARE:
+        if result.returncode != 0 and usb_device(DFU_ID):
+            sys.exit(f"limeboard-config: dfu-util failed:\n{result.stderr.strip()}")
+        print(f"flashed {name}; to go back: sudo limeboard-config firmware install")
+        return
     if result.returncode != 0 and not wait_for(USB_ID, 1):
         sys.exit(f"limeboard-config: dfu-util failed:\n{result.stderr.strip()}")
     if not wait_for(USB_ID, 15):
         sys.exit("limeboard-config: the firmware did not start; hold the user button "
                  "while powering the board to reach the bootloader, then run this again")
     print(f"running: {running_version()}")
+
+
+def firmware(command=None, force=False, auto=False, image=None):
+    running, shipped = running_version(), shipped_version()
+    in_bootloader = usb_device(DFU_ID) is not None
+    other = None if running or in_bootloader else other_firmware()
+    if not auto:
+        if other:
+            product = open(f"{other}/product").read().strip()
+            print(f"running: other firmware ({product}); 'limeboard-config firmware install' "
+                  "replaces it")
+        else:
+            print(f"running: {running or ('none: the STM32 is in its bootloader' if in_bootloader else 'none')}")
+        print(f"shipped: {shipped or 'none'} ({FIRMWARE})")
+    if command is None:
+        return
+    if shipped is None or not os.path.exists(FIRMWARE):
+        sys.exit("limeboard-config: no firmware to flash")
+
+    if command == "update":
+        # The Limeboard I/O firmware only; never an older version unless forced
+        if auto and (running is None or version_tuple(running) >= version_tuple(shipped)):
+            return
+        if not running and not in_bootloader:
+            sys.exit("limeboard-config: the Limeboard I/O firmware is not running"
+                     + ("; 'limeboard-config firmware install' replaces the board's firmware"
+                        if other else " (no Limeboard found on USB)"))
+        if running and not force:
+            if version_tuple(running) == version_tuple(shipped):
+                print("already up to date (--force flashes anyway)")
+                return
+            if version_tuple(running) > version_tuple(shipped):
+                sys.exit(f"limeboard-config: the running {running} is newer than the shipped "
+                         f"{shipped} (--force installs {shipped})")
+        if not in_bootloader:
+            print("restarting the STM32 into its bootloader...")
+            run("dfu-util", "-d", ":".join(USB_ID), "-e")
+            if not wait_for(DFU_ID, 10):
+                sys.exit("limeboard-config: the bootloader did not appear")
+        flash_firmware(FIRMWARE, shipped)
+        return
+
+    # install: replace whatever the STM32 runs (the Limeboard I/O firmware, the
+    # CircuitPython it ships with, the bootloader) with the shipped firmware or
+    # with image, a custom firmware file
+    if image is not None:
+        if not os.path.isfile(image):
+            sys.exit(f"limeboard-config: {image}: no such file")
+        if os.path.getsize(image) > FLASH_SIZE:
+            sys.exit(f"limeboard-config: {image} is larger than the STM32's flash "
+                     f"({FLASH_SIZE // 1024} KiB)")
+    elif running:
+        return firmware("update", force=force)
+    backup = f"/var/backups/limeboard/{time.strftime('%Y%m%d-%H%M%S')}"
+    os.makedirs(backup, exist_ok=True)
+    if running:
+        print("restarting the STM32 into its bootloader...")
+        run("dfu-util", "-d", ":".join(USB_ID), "-e")
+        if not wait_for(DFU_ID, 10):
+            sys.exit("limeboard-config: the bootloader did not appear")
+    elif other:
+        if backup_files(other, backup):
+            print(f"saved the board's files in {backup}/files")
+        ttys = device_nodes(other, "tty")
+        if not ttys:
+            sys.exit("limeboard-config: no serial port to reach the board's firmware; hold the "
+                     "user button while powering the board, then run this again")
+        print("restarting the STM32 into its bootloader...")
+        if not circuitpython_to_bootloader(ttys[0]):
+            sys.exit("limeboard-config: the board's firmware did not answer on its serial "
+                     "port; hold the user button while powering the board, then run this again")
+        if not wait_for(DFU_ID, 15):
+            sys.exit("limeboard-config: the bootloader did not appear; hold the user button "
+                     "while powering the board, then run this again")
+    elif not in_bootloader:
+        sys.exit("limeboard-config: no Limeboard found on USB")
+    # The whole flash, to put the previous firmware back with
+    # sudo limeboard-config firmware install <backup>/flash.bin
+    if run("dfu-util", "-d", ":".join(DFU_ID), "-a", "0", "-s", f"0x08000000:{FLASH_SIZE}",
+           "-U", f"{backup}/flash.bin"):
+        print(f"saved the previous firmware in {backup}/flash.bin")
+    if image is None:
+        flash_firmware(FIRMWARE, shipped)
+    else:
+        flash_firmware(os.path.abspath(image), os.path.basename(image))
 
 
 # Commands ------------------------------------------------------------------------
@@ -424,8 +602,12 @@ def main(argv):
         config = read_config()
         apply(config)
         show(config)
-    elif args[:1] == ["firmware"] and args[1:] in ([], ["update"], ["update", "--force"]):
-        firmware(update="update" in args, force="--force" in args)
+    elif args[:1] == ["firmware"] and args[1:] in (
+            [], ["update"], ["update", "--force"], ["update", "--auto"], ["install"]):
+        firmware(args[1] if len(args) > 1 else None, force="--force" in args,
+                 auto="--auto" in args)
+    elif args[:2] == ["firmware", "install"] and len(args) == 3:
+        firmware("install", image=args[2])
     else:
         sys.exit(__doc__.split("\n\n")[1])
 

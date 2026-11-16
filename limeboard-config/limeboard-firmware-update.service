@@ -1,0 +1,7 @@
+[Unit]
+Description=Limeboard I/O firmware update
+Documentation=https://github.com/Citronics/limeboard-extras
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/limeboard-config firmware update --auto
