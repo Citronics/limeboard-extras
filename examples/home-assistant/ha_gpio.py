@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """ha_gpio.py: an LED and a push button on the Limeboard header, in Home
 Assistant, with gpiozero and MQTT discovery.
 

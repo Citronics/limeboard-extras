@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Generate images/limeboard-pinout.svg, the header pinout diagram.
 
 Usage: python3 tools/pinout_svg.py

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """blink_blinka.py: the classic CircuitPython blink, on the Limeboard with
 Adafruit Blinka. Blinks an LED on GPIO17 (header pin 11) until Ctrl-C.
 """

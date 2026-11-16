@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # rgb_led_sysfs.sh <r> <g> <b>: set the onboard RGB LED (each 0 or 1) through
 # /sys/class/gpio, for systems without the libgpiod tools.
 set -e

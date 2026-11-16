@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """oled_blinka.py: the SSD1306 OLED with Adafruit's CircuitPython driver,
 through Blinka. Draws a frame and a moving bar until Ctrl-C.
 

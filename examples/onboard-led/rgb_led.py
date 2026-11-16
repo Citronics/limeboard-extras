@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Cycle the Limeboard's onboard RGB LED through its 8 colours, then turn it off.
 
 Needs the libgpiod v2 Python bindings (Debian: python3-libgpiod, pip: gpiod).

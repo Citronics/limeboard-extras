@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """oled.py [address] [port]: system status on an SSD1306 128x64 I2C OLED
 (default address 0x3C) wired to the Limeboard header's I2C pins: port 0 is
 GPIO2/3 (pins 3 and 5, the default), port 1 GPIO0/1 (pins 27 and 28).

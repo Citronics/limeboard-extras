@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """blink.py [gpio]: blink an LED wired to a header GPIO (default GPIO17, pin 11).
 
 Needs the libgpiod v2 Python bindings (Debian: python3-libgpiod, pip: gpiod).

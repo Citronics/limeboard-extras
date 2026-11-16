@@ -360,3 +360,10 @@ sudo systemctl stop limeboard-ha            # Debian, Ubuntu
 Stopping the agent releases the lines. The header's GPIO0-27 are never
 used by the agent. The agent itself is built on gpiozero, psutil and
 paho-mqtt; its README in the `limeboard-ha` package describes it.
+
+## License
+
+MIT (`LICENSE`), Copyright (c) 2026 Citronics: the tools, Python packages and
+examples here. The Limeboard I/O firmware is MIT too
+([Citronics/limeboard-firmware](https://github.com/Citronics/limeboard-firmware));
+the kernel's `citronics-dln2` driver is GPL-2.0, as the kernel.

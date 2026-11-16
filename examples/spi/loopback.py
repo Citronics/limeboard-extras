@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """loopback.py [device]: check the Limeboard's SPI bus with one jumper wire.
 
 Connect MOSI (header pin 19) to MISO (pin 21). Every byte sent then comes

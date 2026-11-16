@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Cycle the onboard RGB LED through its 8 colours with gpiozero, then turn it
 off. Press the user button to stop early.
 

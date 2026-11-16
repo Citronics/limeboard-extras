@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Installs limeboard_compat.pth next to the modules: setuptools has no
 setting for files at the root of site-packages."""
 from setuptools import setup

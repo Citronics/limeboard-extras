@@ -8,6 +8,7 @@ version = "1.0"
 description = "gpiozero pin factory for the Citronics Limeboard header (Limeboard I/O firmware)"
 readme = "README.md"
 requires-python = ">=3.9"
+license = {text = "MIT"}
 # lgpio is needed too. It is not listed: built from PyPI's source it needs
 # the lg C library, see README.md.
 dependencies = ["gpiozero>=2.0.1"]

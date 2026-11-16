@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # rgb_led.sh <colour>: set the Limeboard's onboard RGB LED.
 # Colours: red green blue yellow cyan magenta white off.
 # Needs the libgpiod v2 tools (Debian package: gpiod).

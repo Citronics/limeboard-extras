@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Read the phone's motion and light sensors on a Limeboard.
 
 The Fairphone 2's sensor hub (its ADSP) serves the accelerometer, gyroscope,

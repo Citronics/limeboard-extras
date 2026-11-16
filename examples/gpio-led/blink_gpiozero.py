@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """blink_gpiozero.py [gpio]: the classic gpiozero blink, on the Limeboard.
 
 Blinks an LED on GPIO17 (header pin 11) until Ctrl-C. Run with the Limeboard

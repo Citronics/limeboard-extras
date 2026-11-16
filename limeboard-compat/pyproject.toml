@@ -8,6 +8,7 @@ version = "1.0"
 description = "Raspberry Pi GPIO libraries (gpiozero, RPi.GPIO, Adafruit Blinka) on the Citronics Limeboard"
 readme = "README.md"
 requires-python = ">=3.9"
+license = {text = "MIT"}
 dependencies = []
 
 [project.optional-dependencies]

@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # blink.sh [gpio]: blink an LED wired to a header GPIO (default GPIO17, pin 11)
 # until Ctrl-C. Needs the libgpiod v2 tools (Debian package: gpiod).
 gpio=${1:-17}

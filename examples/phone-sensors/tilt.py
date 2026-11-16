@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """tilt.py: print the phone's tilt and heading twice a second, until Ctrl-C.
 
 The tilt is the angle between the phone's z axis and the vertical, from the
