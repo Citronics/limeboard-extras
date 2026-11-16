@@ -1,0 +1,5 @@
+# Upstream PyPI versions packaged for Debian trixie and Ubuntu resolute
+# (armhf). upstream-sync.yml updates this file when PyPI has newer ones.
+gpiozero 2.0.1
+rpi-lgpio 0.6
+lgpio 0.2.2.0
