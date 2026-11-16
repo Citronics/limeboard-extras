@@ -8,6 +8,16 @@ if [ "$1" = configure ]; then
 		getent group "$g" >/dev/null || groupadd -r "$g"
 	done
 
+	# On the first install, the administrators (group sudo) get the header
+	# like the image's user does: gpio, spi, i2c and dialout (/dev/serial0),
+	# as on a Raspberry Pi. 1.0.1 lacked this. Later upgrades leave group
+	# membership alone.
+	if [ -z "$2" ] || dpkg --compare-versions "$2" lt 1.0.2; then
+		for user in $(getent group sudo | cut -d: -f4 | tr , ' '); do
+			usermod -aG gpio,spi,i2c,dialout "$user" || true
+		done
+	fi
+
 	# The bus settings: /etc/limeboard/config.txt is the user's, installed
 	# once and never replaced; limeboard-config turns it into the driver's
 	# options (/etc/modprobe.d/limeboard.conf) and applies them now when the
