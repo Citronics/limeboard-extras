@@ -26,7 +26,7 @@ print(\"gpiozero\", gpiozero.__version__ if hasattr(gpiozero, \"__version__\") e
 "
 		limeboard-config show
 		test -f /etc/limeboard-ha.conf && test "$(stat -c %a /etc/limeboard-ha.conf)" = 600
-		systemctl is-enabled limeboard-ha.service
+		systemctl is-enabled limeboard-ha.service limeboard-config.service
 		getent group gpio spi i2c >/dev/null
 		echo ok
 	'

@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply the Limeboard header settings (/etc/limeboard/config.txt)
+Documentation=https://github.com/Citronics/limeboard-extras
+ConditionPathExists=/etc/limeboard/config.txt
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/limeboard-config
+
+[Install]
+WantedBy=multi-user.target

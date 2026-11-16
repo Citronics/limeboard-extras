@@ -47,6 +47,14 @@ if [ "$1" = configure ]; then
 		udevadm control --reload || true
 		udevadm trigger --action=change --subsystem-match=gpio --subsystem-match=spidev || true
 	fi
+	# Edits of config.txt take effect at the next boot, as on a Raspberry Pi
+	if command -v deb-systemd-helper >/dev/null; then
+		if deb-systemd-helper --quiet was-enabled limeboard-config.service; then
+			deb-systemd-helper enable limeboard-config.service >/dev/null || true
+		else
+			deb-systemd-helper update-state limeboard-config.service >/dev/null || true
+		fi
+	fi
 	if [ -d /run/systemd/system ]; then
 		systemctl daemon-reload || true
 	fi

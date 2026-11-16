@@ -49,6 +49,8 @@ install -D -m 0644 limeboard-config/limeboard-serial-console.service \
 	"$P/usr/lib/systemd/system/limeboard-serial-console.service"
 install -D -m 0644 limeboard-config/limeboard-firmware-update.service \
 	"$P/usr/lib/systemd/system/limeboard-firmware-update.service"
+install -D -m 0644 limeboard-config/limeboard-config.service \
+	"$P/usr/lib/systemd/system/limeboard-config.service"
 install -D -m 0644 limeboard-config/config.txt "$P/usr/share/limeboard/config.txt"
 install -D -m 0644 udev/90-limeboard-io.rules "$P/usr/lib/udev/rules.d/90-limeboard-io.rules"
 install -D -m 0644 udev/91-limeboard-groups.rules "$P/usr/lib/udev/rules.d/91-limeboard-groups.rules"

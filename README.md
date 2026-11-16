@@ -117,7 +117,8 @@ in `/etc/limeboard/config.txt`, with the lines a Pi's `config.txt` uses:
 
 Then apply the file with `limeboard-config`. Unlike on a Pi, there is no
 reboot: the change applies at once, or, if a program is using a bus, when
-the board's STM32 next resets.
+the board's STM32 next resets. As on a Pi, an edit also applies at the next
+boot (`limeboard-config.service`).
 
 ```sh
 sudo limeboard-config                   # apply /etc/limeboard/config.txt

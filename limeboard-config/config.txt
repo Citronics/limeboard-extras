@@ -1,6 +1,7 @@
 # Limeboard header buses, as in a Raspberry Pi's config.txt. Every bus is off
-# until a line here turns it on. After a change, run: sudo limeboard-config
-# (or "sudo limeboard-config enable i2c1", which edits this file for you).
+# until a line here turns it on. A change applies at the next boot, or at once
+# with: sudo limeboard-config (or "sudo limeboard-config enable i2c1", which
+# edits this file for you).
 
 # i2c1: SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), the usual I2C bus
 #dtparam=i2c_arm=on
