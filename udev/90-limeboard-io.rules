@@ -1,0 +1,10 @@
+# Limeboard I/O firmware on the STM32 (pid.codes test ID 1209:0001): the
+# citronics-dln2 driver binds to it by its USB ID. The header's UART (TXD
+# GPIO14, RXD GPIO15) is /dev/serial0, its name on a Raspberry Pi.
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0001", \
+	ENV{ID_USB_INTERFACE_NUM}=="01", SYMLINK+="serial0"
+
+# A newer packaged firmware goes onto the STM32 whenever the board appears
+# (boot, replug, after a package upgrade); a no-op when it is up to date.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="1209", ATTR{idProduct}=="0001", \
+	TAG+="systemd", ENV{SYSTEMD_WANTS}+="limeboard-firmware-update.service"
