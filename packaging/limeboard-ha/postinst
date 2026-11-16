@@ -16,9 +16,19 @@ if [ "$1" = configure ]; then
 		rm -f "$f"
 	fi
 
-	# Enabled on first install; an administrator's disable is kept.
-	if [ -z "$2" ]; then
-		systemctl enable limeboard-ha.service >/dev/null 2>&1 || true
+	# The agent is opt-in: an administrator sets up the broker in
+	# /etc/limeboard-ha.conf, then enables it. Versions before 1.0.3 (and
+	# older images) enabled it themselves: on such an upgrade, it stays
+	# enabled only where a broker is configured.
+	if [ -z "$2" ] || dpkg --compare-versions "$2" lt 1.0.3; then
+		if grep -Eq '^[[:space:]]*MQTT_HOST="?[^"[:space:]]' /etc/limeboard-ha.conf; then
+			systemctl enable limeboard-ha.service >/dev/null 2>&1 || true
+		else
+			systemctl disable limeboard-ha.service >/dev/null 2>&1 || true
+			if [ -d /run/systemd/system ]; then
+				systemctl stop limeboard-ha.service >/dev/null 2>&1 || true
+			fi
+		fi
 	fi
 	if [ -d /run/systemd/system ]; then
 		systemctl daemon-reload || true
