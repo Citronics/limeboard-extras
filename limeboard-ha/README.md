@@ -121,6 +121,86 @@ core. Both images patch it to wake every 10 ms:
 - debounce and watchdog timings get 10 ms resolution;
 - the whole agent then uses about 2-3% of a core.
 
+## Setting it up
+
+The agent is opt-in: the Citronics Lime images install it, but it stays off
+until you set it up, in two parts.
+
+### 1. In Home Assistant
+
+1. **Broker.** Install and start the Mosquitto broker add-on: Settings >
+   Add-ons > Add-on store > Mosquitto broker > Install, then Start. Without
+   add-ons (Home Assistant Container or Core), any MQTT broker works.
+2. **MQTT integration.** Settings > Devices & services. Home Assistant
+   usually finds the broker and offers the MQTT integration: Configure, then
+   Submit. Otherwise: Add integration > MQTT.
+3. **A user for the board.** Settings > People > Users > Add user. The Users
+   tab only shows in Advanced mode, which you turn on in your user profile.
+   The Mosquitto add-on accepts Home Assistant users as MQTT logins. Do not
+   use `homeassistant` or `addons`, which the add-on reserves.
+4. **The broker address** is the Home Assistant machine's IP address
+   (Settings > System > Network), port 1883.
+
+### 2. On the board
+
+```sh
+sudo limeboard-config ha setup --host 192.168.1.10 --user limeboard
+```
+
+It asks for the password without echoing it. Without `--host` and `--user`,
+it asks for those too. It stores them in `/etc/limeboard-ha.conf` (readable
+by root only) and starts the agent, now and at every boot.
+
+From a script, without prompts, the password comes on standard input:
+
+```sh
+printf '%s\n' "$PASSWORD" | sudo limeboard-config ha setup \
+    --host 192.168.1.10 --user limeboard --password-stdin
+```
+
+### 3. Checking that it works
+
+```console
+$ sudo limeboard-config ha
+agent: on, running
+broker: limeboard@192.168.1.10:1883, password set
+```
+
+Without `sudo`, the second line says that `/etc/limeboard-ha.conf` is
+readable by root only.
+
+- **The board's log** (`sudo journalctl -u limeboard-ha -b` on Debian and Ubuntu,
+  `/var/log/limeboard-ha.log` on Buildroot) shows
+  `limeboard-ha: limeboard_<serial> -> 192.168.1.10:1883` when the agent
+  starts, and `LED and button online` when the Limeboard I/O firmware runs.
+- **In Home Assistant**, the device `Limeboard <eMMC serial>` appears within
+  a few seconds under Settings > Devices & services > MQTT. Its sensors
+  update every second, its diagnostics every 30 seconds.
+- **On the broker**, Settings > Devices & services > MQTT > Configure >
+  Listen to a topic, with `limeboard/#`, shows the board's messages:
+  `status` is `online`.
+
+### Changing or stopping it
+
+```sh
+sudo limeboard-config ha setup            # new broker, user or password
+sudo limeboard-config ha disable          # stop it, also at boot
+sudo limeboard-config ha enable           # start it again
+```
+
+The settings can also be edited by hand; then `limeboard-config ha enable`
+(or a restart of the agent) applies them. On Buildroot, the agent starts at
+boot when `/etc/default/limeboard-ha` holds `ENABLED=yes`, which
+`limeboard-config ha enable` writes.
+
+### After flashing a new image
+
+The settings only exist on the board, in `/etc/limeboard-ha.conf`. Package
+upgrades keep them; flashing a new image does not: the agent is off and the
+broker empty again. Run `sudo limeboard-config ha setup` again. Home
+Assistant recognises the board by its eMMC serial, so the device, its
+entities and their history carry on.
+
 ## Configuration
 
 `/etc/limeboard-ha.conf` (mode 600, it holds the MQTT password):
@@ -135,37 +215,6 @@ core. Both images patch it to wake every 10 ms:
 | `SENSOR_INTERVAL` | 1 | seconds between motion and light sensor updates |
 | `NODE_ID` | `limeboard_<eMMC serial>` | MQTT and Home Assistant identifier |
 | `DEVICE_NAME` | `Limeboard <eMMC serial>` | device name in Home Assistant |
-
-In Home Assistant:
-1. Install the Mosquitto broker add-on.
-2. Add the MQTT integration.
-3. Create a Home Assistant user for the board. Do not use `homeassistant`
-   or `addons`, which the add-on reserves.
-
-The agent is opt-in: installed, but not started until you turn it on.
-`limeboard-config` asks for the broker, the user and the password (not
-echoed), stores them in `/etc/limeboard-ha.conf` (readable by root only)
-and starts the agent, now and at every boot:
-
-```sh
-sudo limeboard-config ha setup
-limeboard-config ha                       # on or off, which broker
-sudo limeboard-config ha disable          # stop it (ha enable: start it again)
-```
-
-From a script, without prompts, the password comes on standard input:
-
-```sh
-printf '%s\n' "$PASSWORD" | sudo limeboard-config ha setup \
-    --host 192.168.1.10 --user limeboard --password-stdin
-```
-
-The settings can also be edited by hand; then `limeboard-config ha enable`
-(or a restart of the agent) applies them. On Buildroot, the agent starts at
-boot when `/etc/default/limeboard-ha` holds `ENABLED=yes`, which
-`limeboard-config ha enable` writes.
-
-The board appears under Settings > Devices & services > MQTT.
 
 ## MQTT topics
 
@@ -202,6 +251,21 @@ stop the agent first. The header's GPIO0-27 are free.
 
 ## Troubleshooting
 
+- **The board does not appear in Home Assistant.**
+  - `sudo limeboard-config ha` must say `agent: on, running` and show the
+    broker with `password set`. If not, run `sudo limeboard-config ha setup`.
+  - `MQTT_HOST is not set in /etc/limeboard-ha.conf, idle` in the log: the
+    board was never set up, or was flashed since.
+  - Check that the board reaches the broker:
+    `timeout 3 bash -c 'echo > /dev/tcp/192.168.1.10/1883' && echo reachable`.
+  - **A wrong user or password is not logged on the board**: the agent keeps
+    retrying silently. The broker logs it: Settings > Add-ons > Mosquitto
+    broker > Log shows the board's connection attempts and why they are
+    refused. Run `sudo limeboard-config ha setup` again with the right
+    login.
+- **`limeboard-config: run it with sudo`.** Setting up, enabling and
+  disabling the agent need root, because the settings file holds the
+  password.
 - **The LED and button are unavailable.** Check that the firmware is present
   (`lsusb | grep 1209:0001`) and that the driver created its chip
   (`gpiodetect | grep citronics-dln2`). The log says why: `journalctl -u limeboard-ha`
