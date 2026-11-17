@@ -268,7 +268,7 @@ stop the agent first. The header's GPIO0-27 are free.
   password.
 - **The LED and button are unavailable.** Check that the firmware is present
   (`lsusb | grep 1209:0001`) and that the driver created its chip
-  (`gpiodetect | grep citronics-dln2`). The log says why: `journalctl -u limeboard-ha`
+  (`gpiodetect | grep citronics-dln2`). The log says why: `sudo journalctl -u limeboard-ha`
   on Debian, `/var/log/limeboard-ha.log` on Buildroot.
 - **An entity stays in the wrong section after an update.** Home Assistant
   keeps an existing entity's category when its discovery message changes.
