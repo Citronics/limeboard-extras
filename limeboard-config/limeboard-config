@@ -18,6 +18,8 @@
                                        --user U --password-stdin set them without asking
     limeboard-config ha enable         start the agent now and at every boot
     limeboard-config ha disable        stop it
+    limeboard-config cpu-budget        the CPU budget: level and CPU ceiling (levels with sudo)
+    limeboard-config cpu-budget LEVEL  default, medium, high or yolo (no limit), now and at boot
 
 The buses are off until /etc/limeboard/config.txt turns them on, with the
 lines a Raspberry Pi's config.txt uses:
@@ -46,6 +48,17 @@ and for a login console on the header UART (/dev/serial0, pins 8 and 10):
 The bus settings go to /etc/modprobe.d/limeboard.conf, as options of the
 citronics-dln2 driver, and apply at once: the I2C and SPI ports whose settings
 changed are bound again, the GPIO chip and the other ports are left alone.
+
+The CPU budget keeps the board up on its weakest power source: without a
+battery, a radio powering up (the modem when it starts, the Wi-Fi firmware
+after a crash) while the CPUs run at full speed can collapse the supply and
+reset the board. Debug mode, powered by a computer's USB port, needs it;
+Default mode on USB-C PD or PoE has more headroom. The levels, like a Pi's
+overclock presets: default (the image's, 1574 MHz on an FP2), medium and high
+(one and two CPU steps higher) and yolo (full speed, safe with a strong supply
+or with the modem and the Wi-Fi off). The setting goes to
+/etc/default/citronics-power-budget and applies at once and at every boot; it
+needs a kernel with CPU power capping (the FP2 rc kernel).
 """
 import os
 import re
@@ -746,6 +759,123 @@ def ha(args):
         sys.exit(__doc__.split("\n\n")[1])
 
 
+# CPU budget ------------------------------------------------------------------
+
+BUDGET_SCRIPT = "/usr/libexec/citronics-power-budget"
+BUDGET_DEFAULT = "/etc/default/citronics-power-budget"
+POWER_ZONES = "/sys/class/powercap"
+ENERGY_MODEL = "/sys/kernel/debug/energy_model/cpu0"
+CPUFREQ = "/sys/devices/system/cpu/cpufreq"
+LEVELS = ("default", "medium", "high", "yolo")   # yolo: no limit
+LEVEL_STEPS = {"medium": 1, "high": 2}           # CPU steps above default
+
+
+def budget_zone():
+    """The powercap DTPM node that holds the CPUs as a whole, or None."""
+    try:
+        names = sorted(os.listdir(POWER_ZONES))
+    except FileNotFoundError:
+        return None
+    for name in names:
+        zone = os.path.join(POWER_ZONES, name)
+        if name.startswith("dtpm:") and read_lines(os.path.join(zone, "name")) == ["package"]:
+            return zone
+    return None
+
+
+def budget_setting(path, key="CPU_BUDGET_UW"):
+    """KEY from a shell file, or None."""
+    for line in read_lines(path):
+        m = re.match(rf'\s*{key}="?([^"\s]*)"?\s*$', line)
+        if m:
+            return m.group(1)
+    return None
+
+
+def cpu_steps():
+    """[(MHz, uW)]: each CPU frequency and what the CPUs draw there together,
+    from the energy model (root only)."""
+    try:
+        states = [s for s in os.listdir(ENERGY_MODEL) if s.startswith("ps:")]
+    except OSError:
+        return []
+    cpus = len([p for p in os.listdir(CPUFREQ) if p.startswith("policy")])
+    steps = []
+    for state in states:
+        freq = read_lines(os.path.join(ENERGY_MODEL, state, "frequency"))
+        uw = read_lines(os.path.join(ENERGY_MODEL, state, "power"))
+        if freq and uw:
+            steps.append((int(freq[0]) // 1000, int(uw[0]) * cpus))
+    return sorted(steps)
+
+
+def level_budgets():
+    """{level: (MHz, uW)} for this board; empty without the energy model."""
+    steps = cpu_steps()
+    default_uw = budget_setting(BUDGET_SCRIPT)
+    if not steps or not default_uw:
+        return {}
+    base = max((i for i, (_, uw) in enumerate(steps) if uw <= int(default_uw)), default=0)
+    levels = {"default": steps[base]}
+    for level, up in LEVEL_STEPS.items():
+        levels[level] = steps[min(base + up, len(steps) - 1)]
+    levels["yolo"] = (steps[-1][0], 0)
+    return levels
+
+
+def cpu_budget_show():
+    if not os.path.exists(BUDGET_SCRIPT):
+        print("cpu-budget: not part of this image (citronics-lime-fp2 ships it)")
+        return
+    level = budget_setting(BUDGET_DEFAULT, "LEVEL") or (
+        "custom" if budget_setting(BUDGET_DEFAULT) else "default")
+    print(f"cpu-budget: {level}")
+    if budget_zone() is None:
+        print("CPU ceiling: not limited, this kernel has no CPU power capping")
+    else:
+        ceilings = sorted({int(l) // 1000 for p in sorted(os.listdir(CPUFREQ))
+                           if p.startswith("policy")
+                           for l in read_lines(os.path.join(CPUFREQ, p, "scaling_max_freq"))})
+        print("CPU ceiling: " + ", ".join(f"{c} MHz" for c in ceilings))
+    levels = level_budgets()
+    if levels:
+        print("levels: " + ", ".join(f"{name} {levels[name][0]} MHz" for name in LEVELS))
+    elif budget_zone() is not None:
+        print("levels: run it with sudo to list them")
+
+
+def cpu_budget_set(level):
+    if level == "default":
+        try:
+            os.remove(BUDGET_DEFAULT)
+        except FileNotFoundError:
+            pass
+    else:
+        levels = level_budgets()
+        if not levels:
+            sys.exit("limeboard-config: this kernel has no CPU power capping")
+        with open(BUDGET_DEFAULT, "w") as f:
+            f.write("# Written by limeboard-config cpu-budget\n"
+                    f"LEVEL={level}\nCPU_BUDGET_UW={levels[level][1]}\n")
+    if not run(BUDGET_SCRIPT):
+        warn("could not apply it now; it applies at the next boot")
+
+
+def cpu_budget(args):
+    if not args:
+        cpu_budget_show()
+        return
+    if len(args) != 1 or args[0] not in LEVELS:
+        sys.exit(__doc__.split("\n\n")[1])
+    if not os.path.exists(BUDGET_SCRIPT):
+        sys.exit("limeboard-config: this image has no CPU budget "
+                 "(citronics-lime-fp2 ships it)")
+    if os.geteuid() != 0:
+        sys.exit("limeboard-config: run it with sudo")
+    cpu_budget_set(args[0])
+    cpu_budget_show()
+
+
 def main(argv):
     args = argv[1:]
     if not args:
@@ -765,6 +895,8 @@ def main(argv):
         firmware("install", image=args[2])
     elif args[:1] == ["ha"]:
         ha(args[1:])
+    elif args[:1] == ["cpu-budget"]:
+        cpu_budget(args[1:])
     else:
         sys.exit(__doc__.split("\n\n")[1])
 
