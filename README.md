@@ -194,6 +194,38 @@ answers them through `limeboard-config`:
 Other commands fail with a message. `raspi-config` without arguments shows
 `limeboard-config`'s help.
 
+## CPU budget
+
+The Limeboard has no battery, so nothing absorbs a current peak. A radio
+powering up (the modem when it starts, the Wi-Fi firmware after a crash)
+while the four CPUs run at full speed can pull the supply under the PMIC's
+lockout and reset the board. In Debug mode, powered by a computer's USB port,
+this happens readily; Default mode on USB-C PD or PoE has more headroom.
+
+On the Fairphone 2 the image therefore holds the CPUs to a budget, the same in
+both modes so a board can move between them without changes. Like a Raspberry
+Pi's overclock presets, it has levels:
+
+| Level | CPU ceiling (FP2) | |
+|---|---|---|
+| `default` | 1574 MHz | the image's budget, safe even in Debug mode |
+| `medium` | 1728 MHz | one CPU step higher |
+| `high` | 1958 MHz | two steps higher |
+| `yolo` | 2265 MHz | no limit: only with a strong supply in Default mode, or with the modem and the Wi-Fi off |
+
+```sh
+limeboard-config cpu-budget          # the level and the CPU ceiling
+sudo limeboard-config cpu-budget     # the same, with the ceiling of each level
+sudo limeboard-config cpu-budget medium
+sudo limeboard-config cpu-budget default
+```
+
+A level applies at once and at every boot (`/etc/default/citronics-power-budget`).
+It needs a kernel with CPU power capping (the FP2 rc kernel) and the
+`citronics-lime-fp2` package. Turning the radios off for `yolo` means
+`sudo systemctl disable --now rmtfs ModemManager` and no Wi-Fi connection:
+even unused, the modem powers up at every boot.
+
 ## Header pinout
 
 The header follows the Raspberry Pi layout. [PINOUT.md](PINOUT.md) has the
